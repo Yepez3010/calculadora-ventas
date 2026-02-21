@@ -8,341 +8,183 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<!-- ✅ PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#007AFF">
 
 <style>
 :root{
-  --bg: #f4f6fb;
-  --card: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --line: rgba(15, 23, 42, .10);
-  --primary:#007AFF;
-  --primary2:#2D5BFF;
-  --success:#22c55e;
-  --danger:#ef4444;
-  --warn:#f59e0b;
-  --shadow: 0 18px 50px rgba(2,6,23,.10);
-  --radius: 18px;
-  --radius2: 14px;
+  --bg:#f4f6fb; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+  --line:rgba(15,23,42,.10); --primary:#007AFF; --primary2:#2D5BFF;
+  --success:#22c55e; --danger:#ef4444; --shadow:0 18px 50px rgba(2,6,23,.10);
+  --radius:18px; --radius2:14px;
 }
-
 body.dark{
-  --bg: #0b1220;
-  --card: #0f172a;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --line: rgba(148,163,184,.18);
-  --shadow: 0 20px 70px rgba(0,0,0,.45);
+  --bg:#0b1220; --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+  --line:rgba(148,163,184,.18); --shadow:0 20px 70px rgba(0,0,0,.45);
 }
-
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
-  font-family:'Roboto',system-ui,-apple-system,Segoe UI,Arial;
+  margin:0; font-family:'Roboto',system-ui,-apple-system,Segoe UI,Arial;
   background:
     radial-gradient(1000px 600px at 10% -10%, rgba(0,122,255,.20), transparent 55%),
     radial-gradient(900px 500px at 110% 10%, rgba(34,197,94,.14), transparent 55%),
     var(--bg);
   color:var(--text);
 }
-
-.container{
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 18px 14px 80px;
-}
-
+.container{max-width:1120px;margin:0 auto;padding:18px 14px 80px;}
 header{
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  backdrop-filter: blur(10px);
-  background: color-mix(in srgb, var(--bg) 75%, transparent);
-  border-bottom: 1px solid var(--line);
+  position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+  background:color-mix(in srgb, var(--bg) 75%, transparent);
+  border-bottom:1px solid var(--line);
 }
-
 .header-inner{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding: 14px 14px;
-  max-width: 1120px;
-  margin: 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 14px;max-width:1120px;margin:0 auto;
 }
-
-.brand{ display:flex; align-items:center; gap:10px; }
+.brand{display:flex;align-items:center;gap:10px;}
 .logo{
-  width:42px; height:42px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary), var(--primary2));
-  display:grid; place-items:center;
-  color:white; font-weight:800;
-  box-shadow: 0 10px 30px rgba(0,122,255,.35);
+  width:42px;height:42px;border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  display:grid;place-items:center;color:white;font-weight:800;
+  box-shadow:0 10px 30px rgba(0,122,255,.35);
 }
-.brand h1{ margin:0; font-size: 18px; letter-spacing:.2px; }
-.brand .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
-
-.header-actions{ display:flex; gap:10px; align-items:center; }
+.brand h1{margin:0;font-size:18px;letter-spacing:.2px;}
+.brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.header-actions{display:flex;gap:10px;align-items:center;}
 .icon-btn{
   border:1px solid var(--line);
-  background: color-mix(in srgb, var(--card) 88%, transparent);
+  background:color-mix(in srgb, var(--card) 88%, transparent);
   color:var(--text);
-  padding: 10px 12px;
-  border-radius: 14px;
-  cursor:pointer;
-  box-shadow: 0 10px 24px rgba(2,6,23,.06);
-  transition:.18s ease;
-  display:flex; gap:8px; align-items:center;
-  font-weight:700;
+  padding:10px 12px;border-radius:14px;cursor:pointer;
+  box-shadow:0 10px 24px rgba(2,6,23,.06);
+  transition:.18s ease;display:flex;gap:8px;align-items:center;font-weight:700;
 }
-.icon-btn:hover{ transform: translateY(-1px); }
-.icon{ font-size:16px; }
+.icon-btn:hover{transform:translateY(-1px)}
+.icon{font-size:16px}
 
-.grid{
-  display:grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 14px;
-  margin-top: 14px;
-}
-@media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px;}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
 
 .card{
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow:hidden;
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
 }
-
 .card .head{
-  padding: 14px 16px;
-  display:flex; align-items:center; justify-content:space-between;
-  border-bottom: 1px solid var(--line);
+  padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);
 }
-.card .head h2{ margin:0; font-size:15px; letter-spacing:.2px; }
-.card .content{ padding: 14px 16px 16px; }
+.card .head h2{margin:0;font-size:15px;letter-spacing:.2px}
+.card .content{padding:14px 16px 16px}
 
-.row{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 520px){ .row{ grid-template-columns: 1fr; } }
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:520px){.row{grid-template-columns:1fr}}
 
-.field label{
-  display:flex; justify-content:space-between; gap:10px;
-  font-size: 12px; color: var(--muted);
-  margin: 2px 0 6px;
+.field label{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin:2px 0 6px;}
+.input,select,textarea{
+  width:100%;padding:12px 12px;border-radius:14px;border:1px solid var(--line);
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+  color:var(--text);outline:none;transition:.15s ease;font-family:inherit;
 }
-.input, select, textarea{
-  width:100%;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border:1px solid var(--line);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  color: var(--text);
-  outline:none;
-  transition:.15s ease;
-  font-family: inherit;
+textarea{min-height:84px;resize:vertical}
+.input:focus,select:focus,textarea:focus{
+  border-color:color-mix(in srgb, var(--primary) 55%, var(--line));
+  box-shadow:0 0 0 4px rgba(0,122,255,.15);
 }
-textarea{ min-height: 84px; resize: vertical; }
-.input:focus, select:focus, textarea:focus{
-  border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
-  box-shadow: 0 0 0 4px rgba(0,122,255,.15);
-}
-
-.actions{
-  display:flex; gap:10px; flex-wrap: wrap;
-  margin-top: 12px;
-}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
 .btn{
-  border:none;
-  border-radius: 14px;
-  padding: 12px 14px;
-  cursor:pointer;
-  font-weight:800;
-  display:flex; gap:10px; align-items:center;
-  transition:.18s ease;
+  border:none;border-radius:14px;padding:12px 14px;cursor:pointer;font-weight:800;
+  display:flex;gap:10px;align-items:center;transition:.18s ease;
 }
-.btn-primary{
-  color:white;
-  background: linear-gradient(135deg, var(--primary), var(--primary2));
-  box-shadow: 0 14px 30px rgba(0,122,255,.35);
-}
-.btn-primary:hover{ transform: translateY(-1px); }
+.btn-primary{color:white;background:linear-gradient(135deg,var(--primary),var(--primary2));box-shadow:0 14px 30px rgba(0,122,255,.35);}
+.btn-primary:hover{transform:translateY(-1px)}
 .btn-soft{
-  color: var(--text);
-  background: color-mix(in srgb, var(--primary) 10%, var(--card));
-  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--line));
+  color:var(--text);
+  background:color-mix(in srgb, var(--primary) 10%, var(--card));
+  border:1px solid color-mix(in srgb, var(--primary) 25%, var(--line));
 }
-.btn-danger{
-  color:white;
-  background: linear-gradient(135deg, #ef4444, #fb7185);
-  box-shadow: 0 14px 30px rgba(239,68,68,.25);
-}
-.btn-danger:hover{ transform: translateY(-1px); }
-.btn-muted{
-  color: var(--text);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  border: 1px solid var(--line);
-}
-.btn:disabled{ opacity:.6; cursor:not-allowed; }
+.btn-muted{color:var(--text);background:color-mix(in srgb, var(--card) 92%, transparent);border:1px solid var(--line);}
+.btn-danger{color:white;background:linear-gradient(135deg,#ef4444,#fb7185);box-shadow:0 14px 30px rgba(239,68,68,.25);}
+.btn-danger:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.6;cursor:not-allowed}
 
-.badge{
-  font-size: 12px;
-  font-weight:800;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border:1px solid var(--line);
-  color: var(--muted);
-}
+.badge{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
+hr.sep{border:none;border-top:1px dashed var(--line);margin:14px 0;}
+.muted{color:var(--muted);font-size:13px;}
+.small{font-size:12px;color:var(--muted);}
 
-hr.sep{
-  border:none;
-  border-top:1px dashed var(--line);
-  margin: 14px 0;
-}
-.muted{ color:var(--muted); font-size: 13px; }
+.item-line{display:grid;grid-template-columns:.95fr .65fr .85fr .85fr auto;gap:10px;align-items:end;}
+@media (max-width:780px){.item-line{grid-template-columns:1fr 1fr}}
 
-/* ✅ Sin campo "Artículo": grid */
-.item-line{
-  display:grid;
-  grid-template-columns: .95fr .65fr .85fr .85fr auto;
-  gap:10px;
-  align-items:end;
-}
-@media (max-width: 780px){ .item-line{ grid-template-columns: 1fr 1fr; } }
-
-.small{ font-size: 12px; color: var(--muted); }
-
-.chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .chip{
-  display:flex; align-items:center; gap:8px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  font-size: 12px;
-}
-.chip b{ font-size:12px; }
-.chip .x{
-  width: 22px; height:22px;
-  border-radius: 999px;
-  display:grid; place-items:center;
-  cursor:pointer;
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;
   border:1px solid var(--line);
-  background: color-mix(in srgb, var(--danger) 10%, var(--card));
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+  font-size:12px;
 }
-.chip .x:hover{ filter: brightness(1.05); }
-
-.results{ padding: 14px 16px; }
-.kpis{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 10px;
+.chip b{font-size:12px}
+.chip .x{
+  width:22px;height:22px;border-radius:999px;display:grid;place-items:center;cursor:pointer;
+  border:1px solid var(--line);
+  background:color-mix(in srgb, #ef4444 10%, var(--card));
 }
-@media (max-width: 520px){ .kpis{ grid-template-columns: 1fr; } }
-
+.results{padding:14px 16px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+@media (max-width:520px){.kpis{grid-template-columns:1fr}}
 .kpi{
   border:1px solid var(--line);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  border-radius: var(--radius2);
-  padding: 12px;
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+  border-radius:var(--radius2);padding:12px;
 }
-.kpi .t{ font-size:12px; color:var(--muted); }
-.kpi .v{ font-size: 18px; font-weight:900; margin-top:4px; }
+.kpi .t{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:18px;font-weight:900;margin-top:4px}
 
-.table{
-  width:100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  font-size: 13px;
-}
-.table th, .table td{
-  border-bottom:1px solid var(--line);
-  padding: 10px 8px;
-  text-align:left;
-}
-.table th{ color:var(--muted); font-weight:800; font-size:12px; }
-.table td b{ font-weight:900; }
-
-.footer-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+.table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+.table th,.table td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;}
+.table th{color:var(--muted);font-weight:800;font-size:12px;}
 
 details.private{
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  overflow:hidden;
-  margin-top: 14px;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:14px;
+  background:color-mix(in srgb, var(--card) 92%, transparent);
 }
 details.private summary{
-  list-style:none;
-  cursor:pointer;
-  padding: 14px 16px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 10px;
-  font-weight:900;
-  border-bottom: 1px solid var(--line);
+  list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;font-weight:900;border-bottom:1px solid var(--line);
 }
-details.private summary::-webkit-details-marker{ display:none; }
+details.private summary::-webkit-details-marker{display:none}
 
-.calcbox{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 700px){ .calcbox{ grid-template-columns: 1fr; } }
-
+.calcbox{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:700px){.calcbox{grid-template-columns:1fr}}
 .mini{
-  border:1px solid var(--line);
-  border-radius: var(--radius2);
-  padding: 12px;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
+  border:1px solid var(--line);border-radius:var(--radius2);padding:12px;
+  background:color-mix(in srgb, var(--card) 92%, transparent);
 }
-.mini h3{ margin:0 0 8px; font-size:13px; }
-.mini .mini-row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-.mini .mini-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.mini h3{margin:0 0 8px;font-size:13px;}
+.mini .mini-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mini .mini-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .mini .mini-out{
-  margin-top:10px;
-  font-weight:900;
-  padding: 10px;
-  border-radius: 12px;
-  border:1px solid var(--line);
-  background: color-mix(in srgb, var(--success) 10%, var(--card));
+  margin-top:10px;font-weight:900;padding:10px;border-radius:12px;border:1px solid var(--line);
+  background:color-mix(in srgb, var(--success) 10%, var(--card));
 }
 
-.history-list{ display:flex; flex-direction:column; gap:10px; }
-.hist{
-  border:1px solid var(--line);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  border-radius: var(--radius2);
-  padding: 12px;
-}
-.hist-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
-.hist-top b{ font-size:13px; }
-.hist-top .meta{ font-size:12px; color:var(--muted); }
-.hist-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.history-list{display:flex;flex-direction:column;gap:10px;}
+.hist{border:1px solid var(--line);background:color-mix(in srgb, var(--card) 92%, transparent);border-radius:var(--radius2);padding:12px;}
+.hist-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.hist-top b{font-size:13px;}
+.hist-top .meta{font-size:12px;color:var(--muted);}
+.hist-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .hist-actions button{
-  padding: 9px 10px;
-  border-radius: 12px;
-  border:1px solid var(--line);
-  background: color-mix(in srgb, var(--primary) 10%, var(--card));
-  cursor:pointer;
-  font-weight:800;
+  padding:9px 10px;border-radius:12px;border:1px solid var(--line);
+  background:color-mix(in srgb, var(--primary) 10%, var(--card));
+  cursor:pointer;font-weight:800;
 }
-.hist-actions .del{ background: color-mix(in srgb, var(--danger) 12%, var(--card)); }
+.hist-actions .del{background:color-mix(in srgb, #ef4444 12%, var(--card));}
 
-body.client .admin-only{ display:none !important; }
-body.client .grid{ grid-template-columns: 1fr; }
-body.client .card{ max-width: 980px; margin: 0 auto; }
+body.client .admin-only{display:none!important;}
+body.client .grid{grid-template-columns:1fr;}
+body.client .card{max-width:980px;margin:0 auto;}
 </style>
 </head>
 
@@ -444,9 +286,11 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
             <label>Envío Internacional (%)</label>
             <input class="input" id="shipping" type="number" step="0.01" min="0" placeholder="Ej: 10" />
           </div>
+
           <div class="field">
             <label>Inicial (%)</label>
             <input class="input" id="initial" type="number" step="0.01" min="0" max="100" placeholder="Ej: 30" />
+            <div class="small" id="initialPreview" style="margin-top:6px;">Inicial estimada: —</div>
           </div>
         </div>
 
@@ -479,30 +323,31 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
                   <button class="btn btn-soft" id="m1minus">➖</button>
                   <button class="btn btn-soft" id="m1mul">✖️</button>
                 </div>
-                <div class="mini-out" id="m1out">$0.00</div>
+                <div class="mini-out" id="m1out">0.00</div>
               </div>
 
+              <!-- ✅ NUEVA Mini 2 -->
               <div class="mini">
-                <h3>Mini Calculadora 2 (Bs y conversión)</h3>
+                <h3>Mini Calculadora 2 (Bs → $ según BCV)</h3>
                 <div class="mini-row">
                   <div class="field">
-                    <label>Monto Bs</label>
-                    <input class="input" id="m2bs" type="number" step="0.01">
+                    <label>Monto Bs A</label>
+                    <input class="input" id="m2a" type="number" step="0.01" placeholder="0.00">
                   </div>
                   <div class="field">
-                    <label>Monto $</label>
-                    <input class="input" id="m2usd" type="number" step="0.01">
+                    <label>Monto Bs B</label>
+                    <input class="input" id="m2b" type="number" step="0.01" placeholder="0.00">
                   </div>
                 </div>
                 <div class="mini-actions">
-                  <button class="btn btn-soft" id="m2toUsd">Bs→$</button>
-                  <button class="btn btn-soft" id="m2toBs">$→Bs</button>
+                  <button class="btn btn-soft" id="m2plus">➕</button>
+                  <button class="btn btn-soft" id="m2minus">➖</button>
+                  <button class="btn btn-soft" id="m2mul">✖️</button>
                 </div>
                 <div class="mini-out" id="m2out">$0.00</div>
               </div>
 
-              <!-- ✅ Métodos de pago editables -->
-              <div class="mini" style="grid-column: 1 / -1;">
+              <div class="mini" style="grid-column:1 / -1;">
                 <h3>Métodos de pago (se envían por WhatsApp)</h3>
                 <div class="row">
                   <div class="field">
@@ -525,6 +370,15 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
                   </div>
                 </div>
                 <div class="small">Tip: separa métodos por coma para que salga limpio en el mensaje.</div>
+              </div>
+
+              <div class="mini" style="grid-column:1 / -1;">
+                <h3>Términos y condiciones (se envían por WhatsApp)</h3>
+                <div class="field">
+                  <label>Texto (una condición por línea)</label>
+                  <textarea id="terms_text" class="input" placeholder="Escribe aquí tus términos..."></textarea>
+                </div>
+                <div class="small">Cada línea se enviará como un punto • en WhatsApp.</div>
               </div>
 
             </div>
@@ -550,7 +404,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       </details>
 
       <div class="content">
-        <div class="footer-actions">
+        <div class="actions" style="margin-top:0">
           <button class="btn btn-soft" id="pdfBtn">📄 PDF</button>
           <button class="btn btn-soft" id="waBtn">📲 WhatsApp</button>
         </div>
@@ -570,70 +424,71 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 <script>
 (function(){
   const STORAGE = {
-    draft: "cotizador_draft_v1",
-    history: "cotizador_history_v1",
-    theme: "cotizador_theme_v1",
-    mode: "cotizador_mode_v1",
-    rate: "cotizador_rate_v1",
-    rate_last_day: "cotizador_rate_day_v1",
-    last_quote: "cotizador_last_quote_v1",
-    payments: "cotizador_payments_v1"
+    draft:"cotizador_draft_v1",
+    history:"cotizador_history_v1",
+    theme:"cotizador_theme_v1",
+    mode:"cotizador_mode_v1",
+    rate:"cotizador_rate_v1",
+    rate_last_day:"cotizador_rate_day_v1",
+    last_quote:"cotizador_last_quote_v1",
+    payments:"cotizador_payments_v1",
+    terms:"cotizador_terms_v1"
   };
 
-  const DEFAULT_INITIAL_PCT = 30; // ✅ valor por defecto
+  const DEFAULT_INITIAL_PCT = 30;
+  const DEFAULT_TERMS_LINES = [
+    "Para realizar tu encargo es obligatorio pagar la inicial.",
+    "La tasa y los montos en Bs pueden variar según la tasa BCV del momento."
+  ].join("\n");
 
   const $ = (id)=>document.getElementById(id);
 
-  function safeParse(jsonStr, fallback){
-    try{ return JSON.parse(jsonStr); }catch(e){ return fallback; }
-  }
-
+  function safeParse(jsonStr, fallback){ try{ return JSON.parse(jsonStr); }catch(e){ return fallback; } }
   function nowISODate(){
-    const d = new Date();
-    const off = d.getTimezoneOffset();
-    const local = new Date(d.getTime() - off*60000);
+    const d=new Date(); const off=d.getTimezoneOffset();
+    const local=new Date(d.getTime()-off*60000);
     return local.toISOString().slice(0,10);
   }
-
   function nowDateTimeVE(){
-    const d = new Date();
-    const fecha = d.toLocaleDateString("es-VE", {year:"numeric", month:"2-digit", day:"2-digit"});
-    const hora  = d.toLocaleTimeString("es-VE", {hour:"2-digit", minute:"2-digit"});
+    const d=new Date();
+    const fecha=d.toLocaleDateString("es-VE",{year:"numeric",month:"2-digit",day:"2-digit"});
+    const hora=d.toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
     return `${fecha} ${hora}`;
   }
-
   function fmt(n){
-    const v = Number(n || 0);
-    return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const v=Number(n||0);
+    return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
   }
   function fmtPct(n){
-    const v = Number(n || 0);
-    return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const v=Number(n||0);
+    return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
   }
-
-  function clamp(n, min, max){
-    n = Number(n||0);
-    return Math.max(min, Math.min(max, n));
+  function clamp(n,min,max){
+    n=Number(n||0);
+    return Math.max(min,Math.min(max,n));
   }
-
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
   }
 
+  // Estado
   let items = [];
   let lastQuote = safeParse(localStorage.getItem(STORAGE.last_quote) || "null", null);
   let history = safeParse(localStorage.getItem(STORAGE.history) || "[]", []);
   if(!Array.isArray(history)) history = [];
-  if(!(lastQuote && typeof lastQuote === "object" && !Array.isArray(lastQuote))) lastQuote = null;
+  if(!(lastQuote && typeof lastQuote==="object" && !Array.isArray(lastQuote))) lastQuote = null;
 
-  // Pagos (editable)
+  // Pagos
   const defaultPayments = {
-    bs: "Pago Móvil, Transferencia",
-    usd: "Efectivo, Zinli, Wally",
-    cop: "Bancolombia, Nequi, Nu",
-    usdt: "Binance Pay"
+    bs:"Pago Móvil, Transferencia",
+    usd:"Efectivo, Zinli, Wally",
+    cop:"Bancolombia, Nequi, Nu",
+    usdt:"Binance Pay"
   };
   let payments = Object.assign({}, defaultPayments, safeParse(localStorage.getItem(STORAGE.payments) || "null", {}) || {});
+
+  // Términos
+  let termsText = (localStorage.getItem(STORAGE.terms) || DEFAULT_TERMS_LINES);
 
   function applyPaymentsToUI(){
     $("pay_bs").value = payments.bs || "";
@@ -650,38 +505,46 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     };
     localStorage.setItem(STORAGE.payments, JSON.stringify(payments));
   }
+  function applyTermsToUI(){
+    $("terms_text").value = termsText || "";
+  }
+  function readTermsFromUI(){
+    termsText = ($("terms_text").value || "").trim();
+    localStorage.setItem(STORAGE.terms, termsText);
+  }
+  function formatTermsForWA(text){
+    const lines = String(text || "").split("\n").map(l=>l.trim()).filter(Boolean);
+    if(lines.length === 0) return "• —";
+    return lines.map(l=>{
+      if(l.startsWith("•")) return l;
+      if(l.startsWith("-")) return "• " + l.slice(1).trim();
+      return "• " + l;
+    }).join("\n");
+  }
 
-  // Init base
+  // UI init
   $("brandTitle").textContent = "Cotizador Pro";
   if(!$("date").value) $("date").value = nowISODate();
 
   const savedTheme = localStorage.getItem(STORAGE.theme);
-  if(savedTheme === "dark"){
-    document.body.classList.add("dark");
-    $("themeToggle").textContent = "☀️";
-  }
+  if(savedTheme === "dark"){ document.body.classList.add("dark"); $("themeToggle").textContent = "☀️"; }
 
   function updatePrivateToggleText(){
-    const d = $("privateDetails");
-    const btn = $("privateToggleBtn");
-    if(!d || !btn) return;
+    const d=$("privateDetails"), btn=$("privateToggleBtn");
+    if(!d||!btn) return;
     btn.textContent = d.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
   }
-
   function togglePrivateSection(){
-    const d = $("privateDetails");
-    if(!d) return;
-    d.open = !d.open;
-    updatePrivateToggleText();
+    const d=$("privateDetails"); if(!d) return;
+    d.open = !d.open; updatePrivateToggleText();
   }
-
   $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
 
   $("themeToggle").addEventListener("click", ()=>{
     document.body.classList.toggle("dark");
-    const isDark = document.body.classList.contains("dark");
-    $("themeToggle").textContent = isDark ? "☀️" : "🌙";
-    localStorage.setItem(STORAGE.theme, isDark ? "dark" : "light");
+    const isDark=document.body.classList.contains("dark");
+    $("themeToggle").textContent=isDark?"☀️":"🌙";
+    localStorage.setItem(STORAGE.theme, isDark?"dark":"light");
   });
 
   function ensureDefaultInitialPct(){
@@ -692,24 +555,21 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
   function saveDraft(){
     const draft = {
-      client: $("client").value.trim(),
-      date: $("date").value,
-      brand: $("brand").value,
-      itemType: $("itemType").value,
-      shipping: $("shipping").value,
-      initial: $("initial").value, // ✅ ahora es %
-      bcv: $("bcv").value,
-      items: items
+      client:$("client").value.trim(),
+      date:$("date").value,
+      brand:$("brand").value,
+      itemType:$("itemType").value,
+      shipping:$("shipping").value,
+      initial:$("initial").value, // %
+      bcv:$("bcv").value,
+      items:items
     };
     localStorage.setItem(STORAGE.draft, JSON.stringify(draft));
   }
 
   function loadDraft(){
     const raw = localStorage.getItem(STORAGE.draft);
-    if(!raw){
-      ensureDefaultInitialPct();
-      return;
-    }
+    if(!raw){ ensureDefaultInitialPct(); return; }
     try{
       const d = JSON.parse(raw);
       $("client").value = d.client ?? "";
@@ -725,13 +585,10 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     }
   }
 
-  // Deshabilitar / habilitar botón Agregar si no hay tienda
   function updateAddBtn(){
-    const ok = !!$("brand").value;
-    $("addItemBtn").disabled = !ok;
+    $("addItemBtn").disabled = !$("brand").value;
   }
 
-  // Agregar item + tienda obligatoria
   function addItem(){
     const store = $("brand").value;
     const type = $("itemType").value || "Otros";
@@ -739,22 +596,11 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const price = Number($("itemPrice").value || 0);
     const tax = Number($("itemTax").value || 0);
 
-    if(!store){
-      alert("Selecciona una Tienda antes de agregar artículos.");
-      $("brand").focus();
-      return;
-    }
+    if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
+    if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
 
-    if(price < 0 || tax < 0 || qty < 0){
-      alert("Valores inválidos.");
-      return;
-    }
-
-    const count = items.filter(x =>
-      (x.store || "") === store && (x.type || "") === type
-    ).length + 1;
-
-    const name = `${store} — ${type} #${count}`;
+    // ✅ sin #1
+    const name = `${store} — ${type}`;
 
     items.push({ store, type, name, qty, price, tax });
 
@@ -764,56 +610,81 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
     renderItemsChips();
     saveDraft();
+    updateInitialPreview();
   }
 
   function removeItem(idx){
     items.splice(idx,1);
     renderItemsChips();
     saveDraft();
+    updateInitialPreview();
   }
 
   function renderItemsChips(){
     const wrap = $("itemsChips");
     wrap.innerHTML = "";
-    if(items.length === 0){
-      wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`;
-      return;
-    }
-    items.forEach((it, i)=>{
-      const div = document.createElement("div");
-      div.className = "chip";
+    if(items.length === 0){ wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`; return; }
+    items.forEach((it,i)=>{
+      const div=document.createElement("div");
+      div.className="chip";
       const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
-      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)}
-        <span class="x" title="Eliminar">✕</span>`;
+      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
       div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
       wrap.appendChild(div);
     });
   }
 
-  function calculate(){
-    if(items.length === 0){
-      alert("Agrega al menos un artículo.");
-      return;
-    }
-
-    const store = $("brand").value;
-    if(!store){
-      alert("Selecciona una Tienda antes de calcular.");
-      $("brand").focus();
-      return;
-    }
-
+  // Preview solo para inicial
+  function getPreviewTotals(){
     const shippingPct = clamp($("shipping").value, 0, 100);
-
-    // ✅ Inicial ahora es %
     const initialPct = clamp($("initial").value, 0, 100);
-
     const bcv = Number($("bcv").value || 0);
 
     const itemsCalc = items.map(it=>{
       const subtotal = Number(it.price || 0);
       const tax = Number(it.tax || 0);
-      const total = subtotal + tax; // ✅ no multiplicar por cantidad
+      const total = subtotal + tax;
+      return { ...it, subtotal, tax, total };
+    });
+
+    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+    const shippingUSD = totalItemsUSD * (shippingPct / 100);
+    const totalUSD = totalItemsUSD + shippingUSD;
+
+    const initialUSD = totalUSD * (initialPct / 100);
+    const initialBs = bcv ? initialUSD * bcv : 0;
+
+    return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
+  }
+
+  function updateInitialPreview(){
+    const el = $("initialPreview");
+    if(!el) return;
+
+    if(items.length === 0){
+      el.textContent = "Inicial estimada: —";
+      return;
+    }
+
+    const p = getPreviewTotals();
+    const usdTxt = `$${fmt(p.initialUSD)}`;
+    const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
+    el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
+  }
+
+  function calculate(){
+    if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
+    const store = $("brand").value;
+    if(!store){ alert("Selecciona una Tienda antes de calcular."); $("brand").focus(); return; }
+
+    const shippingPct = clamp($("shipping").value, 0, 100);
+    const initialPct = clamp($("initial").value, 0, 100);
+    const bcv = Number($("bcv").value || 0);
+
+    const itemsCalc = items.map(it=>{
+      const subtotal = Number(it.price || 0);
+      const tax = Number(it.tax || 0);
+      const total = subtotal + tax; // no multiplicar por cantidad
       return { ...it, subtotal, tax, total };
     });
 
@@ -824,7 +695,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const shippingUSD = totalItemsUSD * (shippingPct / 100);
     const totalUSD = totalItemsUSD + shippingUSD;
 
-    // ✅ calcular inicial en USD desde %
     const initialUSD = totalUSD * (initialPct / 100);
     const remainingUSD = Math.max(0, totalUSD - initialUSD);
 
@@ -833,14 +703,14 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const remainingBs = bcv ? remainingUSD * bcv : 0;
 
     const quote = {
-      client: $("client").value.trim(),
-      date: $("date").value,
-      brand: store,
+      client:$("client").value.trim(),
+      date:$("date").value,
+      brand:store,
       shippingPct,
-      initialPct,   // ✅ guardamos %
-      initialUSD,   // ✅ guardamos monto calculado
+      initialPct,
+      initialUSD,
       bcv,
-      items: itemsCalc,
+      items:itemsCalc,
       subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
       remainingUSD,
       totalBs, initialBs, remainingBs
@@ -861,48 +731,46 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const r = $("results");
     const lines = q.items.map(it=>`
       <tr>
-        <td>
-          <b>${escapeHtml(it.name)}</b>
-          <div class="small">${it.qty ? "Cant: " + it.qty : ""}</div>
-        </td>
+        <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
         <td>$${fmt(it.subtotal)}</td>
         <td>$${fmt(it.tax)}</td>
         <td><b>$${fmt(it.total)}</b></td>
       </tr>
     `).join("");
 
-    // Compatibilidad: si cotización vieja no tiene initialPct
-    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : 0));
+    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
 
+    // ✅ KPI exactamente como pediste
     r.innerHTML = `
       <div class="kpis">
         <div class="kpi">
           <div class="t">Total (USD)</div>
           <div class="v">$${fmt(q.totalUSD)}</div>
         </div>
-        <div class="kpi">
-          <div class="t">Pendiente (USD)</div>
-          <div class="v">$${fmt(q.remainingUSD)}</div>
-        </div>
+
         <div class="kpi">
           <div class="t">Total (Bs)</div>
           <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
         </div>
+
         <div class="kpi">
-          <div class="t">Pendiente (Bs)</div>
-          <div class="v">${q.bcv ? fmt(q.remainingBs) + " Bs" : "—"}</div>
+          <div class="t">Inicial (%)</div>
+          <div class="v">${fmtPct(pct)}%</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Inicial (USD / Bs)</div>
+          <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Restante (USD)</div>
+          <div class="v">$${fmt(q.remainingUSD)}</div>
         </div>
       </div>
 
       <table class="table">
-        <thead>
-          <tr>
-            <th>Artículo</th>
-            <th>Precio</th>
-            <th>Impuesto</th>
-            <th>Total</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Artículo</th><th>Precio</th><th>Impuesto</th><th>Total</th></tr></thead>
         <tbody>${lines}</tbody>
       </table>
 
@@ -910,19 +778,13 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
         Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
         Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
       </div>
-      <div class="muted" style="margin-top:6px">
-        Inicial (${fmtPct(pct)}%): <b>$${fmt(q.initialUSD)}</b> • Restante: <b>$${fmt(q.remainingUSD)}</b>
-      </div>
     `;
   }
 
   function renderHistory(){
     const list = $("historyList");
     list.innerHTML = "";
-    if(history.length === 0){
-      list.innerHTML = `<div class="muted">Aún no hay cotizaciones guardadas.</div>`;
-      return;
-    }
+    if(history.length === 0){ list.innerHTML = `<div class="muted">Aún no hay cotizaciones guardadas.</div>`; return; }
 
     history.forEach((q, idx)=>{
       const div = document.createElement("div");
@@ -942,17 +804,15 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
           <button class="del" data-act="del">Eliminar</button>
         </div>
       `;
-
       div.querySelectorAll("button").forEach(btn=>{
         btn.addEventListener("click", ()=>{
           const act = btn.getAttribute("data-act");
-          if(act === "load") loadFromHistory(idx);
-          if(act === "pdf") exportPDF(history[idx]);
-          if(act === "wa") shareWhatsApp(history[idx]);
-          if(act === "del") deleteFromHistory(idx);
+          if(act==="load") loadFromHistory(idx);
+          if(act==="pdf") exportPDF(history[idx]);
+          if(act==="wa") shareWhatsApp(history[idx]);
+          if(act==="del") deleteFromHistory(idx);
         });
       });
-
       list.appendChild(div);
     });
   }
@@ -966,7 +826,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     $("brand").value = q.brand ?? "";
     $("shipping").value = q.shippingPct ?? "";
 
-    // si es vieja: intenta inferir %
     if(q.initialPct != null){
       $("initial").value = q.initialPct;
     }else{
@@ -975,7 +834,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     }
 
     $("bcv").value = q.bcv ?? "";
-
     items = Array.isArray(q.items) ? [...q.items] : [];
     renderItemsChips();
 
@@ -984,12 +842,13 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     renderResults(q);
     saveDraft();
     updateAddBtn();
+    updateInitialPreview();
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
   function deleteFromHistory(index){
     if(!confirm("¿Eliminar esta cotización del historial?")) return;
-    history.splice(index,1);
+    history.splice(index, 1);
     localStorage.setItem(STORAGE.history, JSON.stringify(history));
     renderHistory();
   }
@@ -1001,7 +860,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     renderHistory();
   }
 
-  // ✅ WhatsApp organizado (restante SOLO USD)
+  // WhatsApp (restante SOLO USD) + términos editables
   function quoteToMessage(q){
     const dt = nowDateTimeVE();
 
@@ -1010,7 +869,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
     }).join("\n");
 
-    const totalArticulosUSD = q.totalItemsUSD; // artículos + impuestos (sin envío)
+    const totalArticulosUSD = q.totalItemsUSD;
     const envioUSD = q.shippingUSD;
     const totalUSD = q.totalUSD;
 
@@ -1027,6 +886,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const payUSD = (payments.usd || "").trim();
     const payCOP = (payments.cop || "").trim();
     const payUSDT = (payments.usdt || "").trim();
+
+    const termsBlock = formatTermsForWA(termsText || DEFAULT_TERMS_LINES);
 
     const msg = [
 `🧾 *COTIZACIÓN*
@@ -1058,7 +919,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
 ⏱️ Generado: ${dt}`,
 
 `📌 *TÉRMINOS Y CONDICIONES*
-• Para realizar tu encargo es *obligatorio pagar la inicial*.`,
+${termsBlock}`,
 
 `💳 *MÉTODOS DE PAGO*
 • *Bolívares (Bs):* ${payBS || "—"}
@@ -1078,7 +939,6 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
 
   function exportPDF(q){
     if(!q){ alert("Primero calcula una cotización."); return; }
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -1097,9 +957,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
       q.bcv ? `Tasa: ${fmt(q.bcv)} Bs/USD` : ""
     ].filter(Boolean);
 
-    head.forEach(line=>{
-      doc.text(line, 14, y); y += 6;
-    });
+    head.forEach(line=>{ doc.text(line, 14, y); y += 6; });
 
     y += 4;
     doc.setFont("helvetica", "bold");
@@ -1140,6 +998,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     if(!force && last && lastDay === today){
       bcv.value = last;
       state.textContent = "Tasa guardada";
+      updateInitialPreview();
       return;
     }
 
@@ -1154,8 +1013,10 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
       localStorage.setItem(STORAGE.rate, r);
       localStorage.setItem(STORAGE.rate_last_day, today);
       state.textContent = "Tasa actualizada";
+      updateInitialPreview();
     }catch(e){
       state.textContent = "Tasa manual";
+      updateInitialPreview();
     }
   }
 
@@ -1170,7 +1031,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     $("brand").value = "";
     $("itemType").value = "Ropa";
     $("shipping").value = "";
-    $("initial").value = String(DEFAULT_INITIAL_PCT); // ✅ default 30%
+    $("initial").value = String(DEFAULT_INITIAL_PCT);
     $("bcv").value = "";
 
     $("itemQty").value = "";
@@ -1181,6 +1042,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     renderItemsChips();
     saveDraft();
     updateAddBtn();
+    updateInitialPreview();
   }
 
   function setClientMode(enabled){
@@ -1214,23 +1076,27 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     if(enabled && lastQuote) renderResults(lastQuote);
   });
 
-  // autosave (inputs + selects)
-  ["client","date","shipping","initial","bcv"].forEach(id=>{
-    $(id).addEventListener("input", saveDraft);
+  // Autosave & preview updates
+  ["client","date"].forEach(id=> $(id).addEventListener("input", saveDraft));
+  ["shipping","initial","bcv"].forEach(id=>{
+    $(id).addEventListener("input", ()=>{
+      saveDraft();
+      updateInitialPreview();
+    });
   });
+
   ["brand","itemType"].forEach(id=>{
     $(id).addEventListener("change", ()=>{
       saveDraft();
       updateAddBtn();
+      updateInitialPreview();
     });
   });
 
-  // pagos autosave
-  ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=>{
-    $(id).addEventListener("input", readPaymentsFromUI);
-  });
+  ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=> $(id).addEventListener("input", readPaymentsFromUI));
+  $("terms_text").addEventListener("input", readTermsFromUI);
 
-  // mini calc 1
+  // ✅ Mini calc 1: sin moneda
   function m1(op){
     const a = Number($("m1a").value||0);
     const b = Number($("m1b").value||0);
@@ -1238,35 +1104,46 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     if(op === "+") r = a + b;
     if(op === "-") r = a - b;
     if(op === "*") r = a * b;
-    $("m1out").textContent = "$" + fmt(r);
+    $("m1out").textContent = fmt(r); // sin $
   }
   $("m1plus").addEventListener("click", ()=>m1("+"));
   $("m1minus").addEventListener("click", ()=>m1("-"));
   $("m1mul").addEventListener("click", ()=>m1("*"));
 
-  // mini calc 2
-  $("m2toUsd").addEventListener("click", ()=>{
-    const bs = Number($("m2bs").value||0);
-    const rate = Number($("bcv").value||0);
-    const usd = rate ? bs / rate : 0;
+  // ✅ Mini calc 2: Bs A/B con + - * y resultado en USD según BCV
+  function m2(op){
+    const a = Number($("m2a").value || 0);
+    const b = Number($("m2b").value || 0);
+    const rate = Number($("bcv").value || 0);
+
+    if(!rate || rate <= 0){
+      $("m2out").textContent = "Coloca la Tasa BCV para convertir.";
+      return;
+    }
+
+    let bs = 0;
+    if(op === "+") bs = a + b;
+    if(op === "-") bs = a - b;
+    if(op === "*") bs = a * b;
+
+    const usd = bs / rate;
     $("m2out").textContent = "$" + fmt(usd);
-  });
-  $("m2toBs").addEventListener("click", ()=>{
-    const usd = Number($("m2usd").value||0);
-    const rate = Number($("bcv").value||0);
-    const bs = rate ? usd * rate : 0;
-    $("m2out").textContent = "$" + fmt(usd) + " → " + fmt(bs) + " Bs";
-  });
+  }
+  $("m2plus").addEventListener("click", ()=>m2("+"));
+  $("m2minus").addEventListener("click", ()=>m2("-"));
+  $("m2mul").addEventListener("click", ()=>m2("*"));
 
   $("rateBtn").addEventListener("click", ()=>updateRate({force:true}));
 
-  // Run init
+  // Start
   loadDraft();
   applyPaymentsToUI();
+  applyTermsToUI();
   ensureDefaultInitialPct();
   renderHistory();
   renderItemsChips();
   updateAddBtn();
+  updateInitialPreview();
 
   const savedMode = localStorage.getItem(STORAGE.mode);
   if(savedMode === "client"){
@@ -1274,7 +1151,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     if(lastQuote) localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
     setClientMode(true);
     if(lastQuote) renderResults(lastQuote);
-  } else {
+  }else{
     $("modeBadge").textContent = "Admin";
   }
 
