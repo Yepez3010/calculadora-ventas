@@ -419,7 +419,7 @@
   <div class="topbar">
     <div class="brand">
       <div class="badge">★</div>
-      <div id="brandTitle">YEPEZ IMPORTACIONES</div>
+      <div id="brandTitle">IMPORTACIONES DESDE CHINA</div>
     </div>
   </div>
 
@@ -430,7 +430,7 @@
     <div class="grid">
       <div>
         <label>Cliente</label>
-        <input id="client" type="text" placeholder="Ej: Juan Pérez">
+        <input id="client" type="text" placeholder="Ej: Nombre y apellido">
       </div>
 
       <div class="row2">
@@ -439,8 +439,8 @@
           <input id="date" type="date">
         </div>
         <div>
-          <label>Marca</label>
-          <input id="brand" type="text" placeholder="Ej: Shein / Nike">
+          <label>Tienda</label>
+          <input id="brand" type="text" placeholder="Ej: Shein / Temu">
         </div>
       </div>
 
@@ -453,17 +453,17 @@
 
           <div class="grid" style="margin-top:12px;">
             <div>
-              <label>Producto / Servicio</label>
-              <input id="itemName" type="text" placeholder="Ej: Vestido, Zapatos...">
+              <label>Articulos / Servicio</label>
+              <input id="itemName" type="text" placeholder="Ej: Ropa, accesorios, otros">
             </div>
 
             <div class="row2">
               <div>
-                <label>Cantidad (informativa)</label>
+                <label>Cantidad de articulos (informativa)</label>
                 <input id="itemQty" type="number" inputmode="numeric" placeholder="Ej: 2">
               </div>
               <div>
-                <label>Precio unitario (USD)</label>
+                <label>Total articulos (USD)</label>
                 <input id="itemPrice" type="number" inputmode="decimal" placeholder="Ej: 15">
               </div>
             </div>
@@ -504,9 +504,17 @@
               </div>
             </div>
 
+            <!-- ✅ BCV AUTO + MANUAL -->
             <div>
               <label>Tasa BCV (Bs/USD)</label>
-              <input id="bcv" type="number" inputmode="decimal" placeholder="Ej: 450000">
+              <input id="bcv" type="number" inputmode="decimal" placeholder="Ej: 36.50">
+
+              <div class="mini-actions" style="margin-top:10px;">
+                <button class="btn secondary" id="updateRateBtn" type="button">Actualizar tasa</button>
+                <button class="btn ghost" id="useManualBtn" type="button">Usar manual</button>
+              </div>
+
+              <div class="small" id="rateStatus">Tasa: manual (sin actualizar).</div>
               <div class="small">Esta tasa también se usa en Bs → USD.</div>
             </div>
 
@@ -536,10 +544,10 @@
 
           <div class="calc-grid">
             <div class="calc-card">
-              <h4>Mini Calculadora USD</h4>
+              <h4>Mini Calculadora </h4>
               <div class="row2">
-                <input id="usd1" type="number" inputmode="decimal" placeholder="Número 1">
-                <input id="usd2" type="number" inputmode="decimal" placeholder="Número 2">
+                <input id="usd1" type="number" inputmode="decimal" placeholder="Cifra">
+                <input id="usd2" type="number" inputmode="decimal" placeholder="Cifra">
               </div>
               <div class="op-row">
                 <button class="op-btn" type="button" data-usd-op="+">➕</button>
@@ -556,8 +564,8 @@
             <div class="calc-card">
               <h4>Mini Calculadora Bs → USD</h4>
               <div class="row2">
-                <input id="bs1" type="number" inputmode="decimal" placeholder="Monto Bs 1">
-                <input id="bs2" type="number" inputmode="decimal" placeholder="Monto Bs 2">
+                <input id="bs1" type="number" inputmode="decimal" placeholder="Monto Bs">
+                <input id="bs2" type="number" inputmode="decimal" placeholder="Monto Bs">
               </div>
               <div class="op-row">
                 <button class="op-btn" type="button" data-bs-op="+">➕</button>
@@ -632,7 +640,11 @@
     draft: "cotizador_draft_v1",
     history: "cotizador_history_v1",
     theme: "cotizador_theme_v1",
-    mode: "cotizador_mode_v1"
+    mode: "cotizador_mode_v1",
+
+    // ✅ RATE META
+    rate: "cotizador_rate_v1",
+    rate_last_day: "cotizador_rate_day_v1"
   };
 
   let items = [];
@@ -649,6 +661,81 @@
   if(savedTheme === "dark"){
     document.body.classList.add("dark");
     $("themeToggle").textContent = "☀️";
+  }
+
+  // =========================
+  // RATE AUTO (emprendimiento)
+  // =========================
+  function setRateStatus(text){
+    const el = $("rateStatus");
+    if(el) el.textContent = text;
+  }
+
+  function todayKey(){
+    return new Date().toDateString();
+  }
+
+  function saveRateMeta(rate, source){
+    const meta = {
+      rate: Number(rate),
+      source: source || "unknown",
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE.rate, JSON.stringify(meta));
+    localStorage.setItem(STORAGE.rate_last_day, todayKey());
+  }
+
+  function loadRateMeta(){
+    const raw = localStorage.getItem(STORAGE.rate);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+
+  async function fetchUSDVES(){
+    // Proveedor público sin key (puede cambiar con el tiempo)
+    const r = await fetch("https://open.er-api.com/v6/latest/USD", { cache: "no-store" });
+    const d = await r.json();
+    if(d?.result === "success" && d?.rates?.VES){
+      return { rate: Number(d.rates.VES), source: "open.er-api.com" };
+    }
+    throw new Error("Proveedor no devolvió VES");
+  }
+
+  async function updateRate({ force = false } = {}){
+    try{
+      const lastDay = localStorage.getItem(STORAGE.rate_last_day);
+
+      // Si no es forzado, solo 1 vez al día
+      if(!force && lastDay === todayKey()){
+        const meta = loadRateMeta();
+        if(meta?.rate){
+          $("bcv").value = Number(meta.rate).toFixed(2);
+          setRateStatus(`Tasa automática (cache): ${Number(meta.rate).toFixed(2)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+          saveDraft();
+        }
+        return;
+      }
+
+      setRateStatus("Actualizando tasa...");
+
+      const { rate, source } = await fetchUSDVES();
+      if(!Number.isFinite(rate) || rate <= 0) throw new Error("Tasa inválida");
+
+      $("bcv").value = rate.toFixed(2);
+      saveRateMeta(rate, source);
+      setRateStatus(`Tasa automática: ${rate.toFixed(2)} • Fuente: ${source} • ${new Date().toLocaleString()}`);
+      saveDraft();
+    }catch(err){
+      console.warn("Error actualizando tasa:", err);
+      const meta = loadRateMeta();
+      if(meta?.rate){
+        $("bcv").value = Number(meta.rate).toFixed(2);
+        setRateStatus(`No se pudo actualizar. Usando última guardada: ${Number(meta.rate).toFixed(2)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+        saveDraft();
+        return;
+      }
+      setRateStatus("No se pudo actualizar. Coloca la tasa manualmente.");
+    }
   }
 
   // =========================
@@ -752,7 +839,8 @@
     const bcvHTML = isClient ? "" : `
       <div style="margin-top:10px;" class="muted">
         <div><strong>BCV:</strong> Bs ${money(q.bcv)}</div>
-        <div><strong>Total Bs:</strong> Bs ${money(q.totalBs)}</div>
+        <div><strong>Fuente:</strong> ${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}</div>
+        <div style="margin-top:6px;"><strong>Total Bs:</strong> Bs ${money(q.totalBs)}</div>
         <div><strong>Inicial Bs:</strong> Bs ${money(q.initialBs)}</div>
         <div><strong>Restante Bs:</strong> Bs ${money(q.remainingBs)}</div>
       </div>
@@ -794,6 +882,11 @@
     const initialPct = parseFloat($("initial").value) || 0;
     const bcv = parseFloat($("bcv").value) || 1;
 
+    // ✅ congelar metadata de tasa usada en esta cotización
+    const rateMeta = loadRateMeta();
+    const bcvSource = rateMeta?.source || "manual";
+    const bcvUpdatedAt = rateMeta?.updatedAt || null;
+
     if(!client || !brand){ alert("Completa Cliente y Marca."); return; }
     if(items.length === 0){ alert("Agrega al menos 1 ítem."); return; }
 
@@ -814,6 +907,11 @@
       client, date, brand,
       items: [...items],
       shippingPct, initialPct, bcv,
+
+      // ✅ NUEVO: tasa congelada
+      bcvSource,
+      bcvUpdatedAt,
+
       totalItemsUSD, shippingUSD, totalUSD,
       initialUSD, remainingUSD,
       totalBs, initialBs, remainingBs
@@ -917,15 +1015,22 @@
     lines.push(`Total: *$${money(q.totalUSD)}*`);
     lines.push(`Inicial (${money(q.initialPct)}%): $${money(q.initialUSD)}`);
     lines.push(`Restante: $${money(q.remainingUSD)}`);
-    lines.push(`BCV: Bs ${money(q.bcv)}`);
+
+    const rateInfo = `${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}`;
+    lines.push(`BCV usada: Bs ${money(q.bcv)} (${rateInfo})`);
     lines.push(`Total Bs: Bs ${money(q.totalBs)}`);
+
+    // ✅ Nota anti-discusión (emprendimiento +)
+    lines.push(``);
+    lines.push(`📝 Nota: La tasa aplicada corresponde al momento de emisión de esta cotización y puede variar según el día.`);
+
     return lines.join("\n");
   }
 
   function shareWhatsApp(q){
     if(!q){ alert("Primero calcula una cotización."); return; }
     const msg = encodeURIComponent(quoteToMessage(q));
-    window.open(CONFIG.whatsappBase + msg, "_blank");
+    window.open(CONFIG.whatsappBase + msg, "_blank", "noopener,noreferrer");
   }
 
   // =========================
@@ -969,8 +1074,18 @@
     doc.text(`Inicial (${money(q.initialPct)}%): $${money(q.initialUSD)}`, 14, y); y += 6;
     doc.text(`Restante: $${money(q.remainingUSD)}`, 14, y); y += 7;
 
-    doc.text(`BCV: Bs ${money(q.bcv)}`, 14, y); y += 6;
-    doc.text(`Total Bs: Bs ${money(q.totalBs)}`, 14, y); y += 6;
+    const rateInfo = `${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}`;
+    const rateLine = `BCV usada: Bs ${money(q.bcv)} (${rateInfo})`;
+    doc.text(doc.splitTextToSize(rateLine, 180), 14, y); y += 10;
+
+    doc.text(`Total Bs: Bs ${money(q.totalBs)}`, 14, y); y += 8;
+
+    // ✅ Nota anti-discusión
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(9);
+    const note = "Nota: La tasa aplicada corresponde al momento de emisión de esta cotización y puede variar según el día.";
+    doc.text(doc.splitTextToSize(note, 180), 14, y);
+    y += 10;
 
     doc.setFontSize(9);
     doc.text("Generado desde Cotizador Pro (PWA)", 105, 290, {align:"center"});
@@ -1099,6 +1214,10 @@
     if(lastQuote) renderResults(lastQuote);
   });
 
+  // ✅ Rate buttons
+  $("updateRateBtn").addEventListener("click", () => updateRate({ force: true }));
+  $("useManualBtn").addEventListener("click", () => setRateStatus("Tasa: manual (editada por ti)."));
+
   document.addEventListener("click", (e) => {
     const usdOp = e.target?.getAttribute?.("data-usd-op");
     const bsOp  = e.target?.getAttribute?.("data-bs-op");
@@ -1169,6 +1288,9 @@
     setClientMode(true);
     if(lastQuote) renderResults(lastQuote);
   }
+
+  // ✅ Auto-actualizar tasa (1 vez al día)
+  updateRate({ force: false });
 
   // =========================
   // ✅ PWA: REGISTRAR SERVICE WORKER
