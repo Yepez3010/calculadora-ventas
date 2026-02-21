@@ -293,6 +293,66 @@ button, .btn, .icon-btn { min-height: 44px; }
   .table th,.table td{ padding:8px 6px; }
 }
 
+/* ===== MOBILE (APP BANKING STYLE) ===== */
+@media (max-width: 768px){
+
+  .container{ padding: 12px !important; }
+
+  .card{
+    padding: 0 !important;
+    border-radius: 14px !important;
+    margin-bottom: 12px !important;
+  }
+  .card .head{ padding: 12px 12px !important; }
+  .card .content{ padding: 12px 12px 14px !important; }
+
+  .brand h1{ font-size: 16px !important; }
+  .brand .sub{ font-size: 11px !important; }
+
+  .card .head h2{ font-size: 14px !important; }
+
+  .field label{
+    font-size: 11px !important;
+    margin: 2px 0 6px !important;
+  }
+
+  /* iOS: mantener 16px evita zoom */
+  input, select, textarea{
+    font-size: 16px !important;
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+  }
+  input, select{ height: 40px !important; }
+
+  .btn, .icon-btn, button{
+    min-height: 40px !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+
+  .row{ grid-template-columns: 1fr !important; gap: 10px !important; }
+
+  .item-line{
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .kpis{ grid-template-columns: 1fr !important; gap: 10px !important; }
+  .kpi{ padding: 10px !important; }
+  .kpi .v{ font-size: 17px !important; }
+
+  details.private summary{ padding: 12px 12px !important; }
+
+  .mini{ padding: 10px !important; }
+  .mini h3{ font-size: 13px !important; }
+  .mini .mini-actions{ gap: 8px !important; }
+  .mini .mini-out{ padding: 10px !important; font-size: 18px !important; }
+
+  .table{ font-size: 12px !important; }
+  .table th,.table td{ padding: 8px 6px !important; }
+}
+
 </style>
 </head>
 
@@ -886,66 +946,77 @@ button, .btn, .icon-btn { min-height: 44px; }
 
     const current = sel.value;
     sel.innerHTML = "";
-
     Object.keys(USERS).sort().forEach(u=>{
       const opt = document.createElement("option");
       opt.value = u;
       opt.textContent = USERS[u].name || u;
       sel.appendChild(opt);
     });
-
     if(current && USERS[current]) sel.value = current;
   }
 
   function updateLoginPreview(){
     const USERS = getUsers();
-    const user = $("loginUser").value;
-    const info = USERS[user];
-    if(!info) return;
-
-    $("loginAvatar").textContent = info.avatar || makeAvatarFromUser(user);
-    $("loginName").textContent = info.name || user;
-    $("loginRole").textContent =
-      info.role === "superadmin" ? "Permisos: Admin Maestro" : "Permisos: Admin";
-
-    $("loginStatus").textContent = isLocked(user) ? lockMessage(user) : "🔒 Protegido";
+    const sel = $("loginUser");
+    const u = sel?.value;
+    const info = USERS[u] || {};
+    if($("loginAvatar")) $("loginAvatar").textContent = info.avatar || makeAvatarFromUser(u);
+    if($("loginName")) $("loginName").textContent = info.name || u || "—";
+    if($("loginRole")) $("loginRole").textContent = info.role === "superadmin" ? "Admin Maestro" : "Admin";
   }
 
-  function showLogin(){
+  function showLogin(msg){
+    const ov = $("loginOverlay");
+    if(!ov) return;
+    ov.classList.add("show");
+    ov.setAttribute("aria-hidden","false");
+
     buildLoginOptions();
-    $("loginOverlay").classList.add("show");
-    $("loginOverlay").setAttribute("aria-hidden","false");
-    $("loginPass").value = "";
     updateLoginPreview();
-    setTimeout(()=> $("loginPass").focus(), 50);
+    if($("loginPass")) $("loginPass").value = "";
+
+    if(msg){
+      $("loginStatus").textContent = msg;
+    }else{
+      $("loginStatus").textContent = "🔒 Protegido";
+    }
   }
+
   function hideLogin(){
-    $("loginOverlay").classList.remove("show");
-    $("loginOverlay").setAttribute("aria-hidden","true");
+    const ov = $("loginOverlay");
+    if(!ov) return;
+    ov.classList.remove("show");
+    ov.setAttribute("aria-hidden","true");
   }
 
   function doLogin(){
     const USERS = getUsers();
-    const user = $("loginUser").value;
-    const pass = $("loginPass").value;
+    const user = $("loginUser")?.value;
+    const pass = ($("loginPass")?.value || "").trim();
+
+    if(!user || !USERS[user]){
+      alert("Selecciona un usuario válido.");
+      return;
+    }
 
     if(isLocked(user)){
       $("loginStatus").textContent = lockMessage(user);
       return;
     }
 
-    if(!USERS[user] || pass !== USERS[user].pass){
+    if(pass !== String(USERS[user].pass || "")){
       registerFail(user);
-      $("loginStatus").textContent = "❌ Datos incorrectos";
-      setTimeout(()=> updateLoginPreview(), 1200);
-      $("loginPass").focus();
+      $("loginStatus").textContent = "❌ Contraseña incorrecta";
       return;
     }
 
     clearFails(user);
     setActiveUser(user);
     hideLogin();
-    boot();
+    resetInactivityTimer();
+
+    // recargar por user scoped data
+    location.reload();
   }
 
   function doLogout(){
@@ -954,541 +1025,552 @@ button, .btn, .icon-btn { min-height: 44px; }
     location.reload();
   }
 
-  /* ====== Export/Import users ====== */
-  function setXMsg(t){
-    const el = $("users_xmsg");
-    if(el) el.textContent = t;
+  // Tema
+  const THEME_KEY = "cotizador_theme_v2";
+  function applyTheme(){
+    const t = localStorage.getItem(THEME_KEY) || "light";
+    document.body.classList.toggle("dark", t === "dark");
+    const btn = $("themeToggle");
+    if(btn){
+      btn.innerHTML = (t === "dark") ? '<span class="icon">☀️</span>' : '<span class="icon">🌙</span>';
+    }
   }
-
-  function exportUsersPayload(){
-    const customUsers = loadUserStore();
-    const passStore = loadPassStore();
-
-    const payload = {
-      v: 1,
-      exportedAt: new Date().toISOString(),
-      users: customUsers,
-      passwords: {}
-    };
-
-    Object.keys(customUsers).forEach(u=>{
-      if(passStore[u]) payload.passwords[u] = passStore[u];
-    });
-
-    return payload;
-  }
-
-  function importUsersPayload(raw, { merge = true } = {}){
-    const data = (typeof raw === "string") ? JSON.parse(raw) : raw;
-    if(!data || typeof data !== "object") throw new Error("JSON inválido.");
-    if(!data.users || typeof data.users !== "object") throw new Error("Falta data.users");
-
-    const incomingUsers = data.users || {};
-    const incomingPw = data.passwords || {};
-
-    const curUsers = merge ? loadUserStore() : {};
-    const curPw = merge ? loadPassStore() : {};
-
-    Object.keys(incomingUsers).forEach(u=>{
-      if(DEFAULT_USERS[u]) return;
-      const info = incomingUsers[u] || {};
-      curUsers[u] = {
-        name: String(info.name || u),
-        role: info.role === "superadmin" ? "superadmin" : "admin",
-        avatar: String(info.avatar || makeAvatarFromUser(u))
-      };
-    });
-
-    Object.keys(incomingPw).forEach(u=>{
-      if(DEFAULT_USERS[u]) return;
-      const p = String(incomingPw[u] || "").trim();
-      if(p.length >= 1) curPw[u] = p;
-    });
-
-    saveUserStore(curUsers);
-    savePassStore(curPw);
-
-    buildLoginOptions();
-    renderUsersTable();
-    updateActiveUserBadge();
-    updateLoginPreview();
+  function toggleTheme(){
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem(THEME_KEY, isDark ? "light" : "dark");
+    applyTheme();
   }
 
   /* ===========================
-     APP BOOT (por usuario)
+     COTIZADOR
   =========================== */
-  function boot(){
-    resetInactivityTimer();
 
-    const USERS = getUsers();
-    const USER = getActiveUser();
-    if(!USER){ showLogin(); return; }
-    const ROLE = USERS[USER]?.role || "admin";
+  const DEFAULT_SHIPPING_PCT = 10;
+  const DEFAULT_INITIAL_PCT = 30;
 
-    // Prefijo por usuario (datos separados)
-    const PFX = `cotizador_${USER}_`;
+  let items = [];
+  let history = [];
+  let lastQuote = null;
 
-    const STORAGE = {
-      draft_u:        PFX + "draft_v1",
-      history_u:      PFX + "history_v1",
-      theme_u:        PFX + "theme_v1",
-      mode_u:         PFX + "mode_v1",
-      rate_u:         PFX + "rate_v1",
-      rate_last_day_u:PFX + "rate_day_v1",
-      last_quote_u:   PFX + "last_quote_v1",
-      payments_u:     PFX + "payments_v1",
-      terms_u:        PFX + "terms_v1"
+  const STORAGE = {
+    draft_u: null,
+    history_u: null,
+    last_quote_u: null,
+    mode_u: null,
+    payments_u: null,
+    terms_u: null
+  };
+
+  function initStorageKeys(){
+    const u = getActiveUser() || "anon";
+    STORAGE.draft_u = `cotizador_draft_v2_${u}`;
+    STORAGE.history_u = `cotizador_history_v2_${u}`;
+    STORAGE.last_quote_u = `cotizador_last_quote_v2_${u}`;
+    STORAGE.mode_u = `cotizador_mode_v2_${u}`;
+    STORAGE.payments_u = `cotizador_payments_v2_${u}`;
+    STORAGE.terms_u = `cotizador_terms_v2_${u}`;
+  }
+
+  function fmt(n){
+    const x = Number(n || 0);
+    return x.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+  function fmtPct(n){
+    const x = Number(n || 0);
+    return (Math.round(x * 100) / 100).toString();
+  }
+  function escapeHtml(s){
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function clamp(v, a, b){
+    v = Number(v || 0);
+    if(isNaN(v)) v = 0;
+    return Math.min(b, Math.max(a, v));
+  }
+  function nowISODate(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+
+  // fecha/hora Venezuela (UTC-4)
+  function nowDateTimeVE(){
+    const d = new Date(Date.now() - (4 * 60 * 60 * 1000));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth()+1).padStart(2,"0");
+    const day = String(d.getUTCDate()).padStart(2,"0");
+    const hh = String(d.getUTCHours()).padStart(2,"0");
+    const mm = String(d.getUTCMinutes()).padStart(2,"0");
+    return `${y}-${m}-${day} ${hh}:${mm} (VE)`;
+  }
+
+  // Modo cliente
+  function setClientMode(on){
+    document.body.classList.toggle("client", !!on);
+    $("modeBadge").textContent = on ? "Cliente" : "Admin";
+    localStorage.setItem(STORAGE.mode_u, on ? "client" : "admin");
+    const b = $("clientModeBtn");
+    if(b){
+      b.innerHTML = on ? '<span class="icon">🧑‍💼</span> Modo Admin' : '<span class="icon">👤</span> Modo Cliente';
+    }
+  }
+
+  function updatePrivateToggleText(){
+    const det = $("privateDetails");
+    const btn = $("privateToggleBtn");
+    if(!det || !btn) return;
+    btn.textContent = det.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
+  }
+
+  // Rate (USD -> VES)
+  async function updateRate({force=false}={}){
+    const badge = $("rateState");
+    const input = $("bcv");
+    if(!badge || !input) return;
+
+    if(!force && input.value){
+      badge.textContent = "Tasa manual";
+      return;
+    }
+
+    try{
+      badge.textContent = "Buscando tasa…";
+      // Fuente referencial (no oficial BCV)
+      const res = await fetch("https://open.er-api.com/v6/latest/USD", { cache:"no-store" });
+      const data = await res.json();
+      const rate = data?.rates?.VES;
+      if(rate){
+        input.value = String(Math.round(rate * 100) / 100);
+        badge.textContent = "Tasa automática";
+      }else{
+        badge.textContent = "Tasa manual";
+      }
+    }catch{
+      badge.textContent = "Tasa manual";
+    }
+  }
+
+  // Draft
+  function saveDraft(){
+    const draft = {
+      client: $("client")?.value || "",
+      date: $("date")?.value || "",
+      brand: $("brand")?.value || "",
+      bcv: $("bcv")?.value || "",
+      shipping: $("shipping")?.value || "",
+      initial: $("initial")?.value || "",
+      items
     };
+    localStorage.setItem(STORAGE.draft_u, JSON.stringify(draft));
+  }
 
-    const DEFAULT_INITIAL_PCT = 30;
-    const DEFAULT_TERMS_LINES = [
-      "Para realizar tu encargo es obligatorio pagar la inicial.",
-      "La tasa y los montos en Bs pueden variar según la tasa BCV del momento."
-    ].join("\n");
+  function loadDraft(){
+    const d = parseSafe(localStorage.getItem(STORAGE.draft_u) || "null", null);
+    if(!d) return;
+    try{
+      $("client").value = d.client ?? "";
+      $("date").value = d.date ?? nowISODate();
+      $("brand").value = d.brand ?? "";
+      $("bcv").value = d.bcv ?? "";
+      $("shipping").value = d.shipping ?? "";
+      $("initial").value = d.initial ?? "";
+      items = Array.isArray(d.items) ? d.items : [];
+    }catch(_){}
+  }
 
-    function safeParse(jsonStr, fallback){ try{ return JSON.parse(jsonStr); }catch(e){ return fallback; } }
-    function nowISODate(){
-      const d=new Date(); const off=d.getTimezoneOffset();
-      const local=new Date(d.getTime()-off*60000);
-      return local.toISOString().slice(0,10);
-    }
-    function nowDateTimeVE(){
-      const d=new Date();
-      const fecha=d.toLocaleDateString("es-VE",{year:"numeric",month:"2-digit",day:"2-digit"});
-      const hora=d.toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
-      return `${fecha} ${hora}`;
-    }
-    function fmt(n){
-      const v=Number(n||0);
-      return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
-    }
-    function fmtPct(n){
-      const v=Number(n||0);
-      return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
-    }
-    function clamp(n,min,max){
-      n=Number(n||0);
-      return Math.max(min,Math.min(max,n));
-    }
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-    }
-
-    // Estado (por usuario)
-    let items = [];
-    let lastQuote = safeParse(localStorage.getItem(STORAGE.last_quote_u) || "null", null);
-    let history = safeParse(localStorage.getItem(STORAGE.history_u) || "[]", []);
-    if(!Array.isArray(history)) history = [];
-    if(!(lastQuote && typeof lastQuote==="object" && !Array.isArray(lastQuote))) lastQuote = null;
-
-    // Pagos (por usuario)
-    const defaultPayments = {
-      bs:"Pago Móvil, Transferencia",
-      usd:"Efectivo, Zinli, Wally",
-      cop:"Bancolombia, Nequi, Nu",
-      usdt:"Binance Pay"
-    };
-    let payments = Object.assign({}, defaultPayments, safeParse(localStorage.getItem(STORAGE.payments_u) || "null", {}) || {});
-
-    // Términos (por usuario)
-    let termsText = (localStorage.getItem(STORAGE.terms_u) || DEFAULT_TERMS_LINES);
-
-    function applyPaymentsToUI(){
-      $("pay_bs").value = payments.bs || "";
-      $("pay_usd").value = payments.usd || "";
-      $("pay_cop").value = payments.cop || "";
-      $("pay_usdt").value = payments.usdt || "";
-    }
-    function readPaymentsFromUI(){
-      payments = {
-        bs: ($("pay_bs").value || "").trim(),
-        usd: ($("pay_usd").value || "").trim(),
-        cop: ($("pay_cop").value || "").trim(),
-        usdt: ($("pay_usdt").value || "").trim()
-      };
-      localStorage.setItem(STORAGE.payments_u, JSON.stringify(payments));
-    }
-    function applyTermsToUI(){
-      $("terms_text").value = termsText || "";
-    }
-    function readTermsFromUI(){
-      termsText = ($("terms_text").value || "").trim();
-      localStorage.setItem(STORAGE.terms_u, termsText);
-    }
-    function formatTermsForWA(text){
-      const lines = String(text || "").split("\n").map(l=>l.trim()).filter(Boolean);
-      if(lines.length === 0) return "• —";
-      return lines.map(l=>{
-        if(l.startsWith("•")) return l;
-        if(l.startsWith("-")) return "• " + l.slice(1).trim();
-        return "• " + l;
-      }).join("\n");
-    }
-
-    // Theme
-    const savedTheme = localStorage.getItem(STORAGE.theme_u);
-    document.body.classList.remove("dark");
-    if(savedTheme === "dark"){ document.body.classList.add("dark"); $("themeToggle").textContent = "☀️"; }
-    else { $("themeToggle").textContent = "🌙"; }
-
-    $("themeToggle").onclick = ()=>{
-      document.body.classList.toggle("dark");
-      const isDark=document.body.classList.contains("dark");
-      $("themeToggle").textContent=isDark?"☀️":"🌙";
-      localStorage.setItem(STORAGE.theme_u, isDark?"dark":"light");
-    };
-
+  function ensureDefaultInitialPct(){
+    if(!$("initial").value) $("initial").value = DEFAULT_INITIAL_PCT;
+    if(!$("shipping").value) $("shipping").value = DEFAULT_SHIPPING_PCT;
     if(!$("date").value) $("date").value = nowISODate();
+  }
 
-    function updatePrivateToggleText(){
-      const d=$("privateDetails"), btn=$("privateToggleBtn");
-      if(!d||!btn) return;
-      btn.textContent = d.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
-    }
-    function togglePrivateSection(){
-      const d=$("privateDetails"); if(!d) return;
-      d.open = !d.open; updatePrivateToggleText();
-    }
-    $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
-    $("privateToggleBtn").onclick = togglePrivateSection;
+  // Items
+  function updateAddBtn(){
+    $("addItemBtn").disabled = !$("brand").value;
+  }
 
-    function ensureDefaultInitialPct(){
-      if($("initial").value === "" || $("initial").value == null){
-        $("initial").value = String(DEFAULT_INITIAL_PCT);
-      }
-    }
+  function addItem(){
+    const store = $("brand").value;
+    const type = $("itemType").value || "Otros";
+    const qty = Number($("itemQty").value || 0);
+    const price = Number($("itemPrice").value || 0);
+    const tax = Number($("itemTax").value || 0);
 
-    function saveDraft(){
-      const draft = {
-        client:$("client").value.trim(),
-        date:$("date").value,
-        brand:$("brand").value,
-        itemType:$("itemType").value,
-        shipping:$("shipping").value,
-        initial:$("initial").value,
-        bcv:$("bcv").value,
-        items:items
-      };
-      localStorage.setItem(STORAGE.draft_u, JSON.stringify(draft));
-    }
+    if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
+    if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
 
-    function loadDraft(){
-      const raw = localStorage.getItem(STORAGE.draft_u);
-      if(!raw){ ensureDefaultInitialPct(); return; }
-      try{
-        const d = JSON.parse(raw);
-        $("client").value = d.client ?? "";
-        $("date").value = d.date ?? nowISODate();
-        $("brand").value = d.brand ?? "";
-        $("itemType").value = d.itemType ?? "Ropa";
-        $("shipping").value = d.shipping ?? "";
-        $("initial").value = (d.initial ?? "") !== "" ? d.initial : String(DEFAULT_INITIAL_PCT);
-        $("bcv").value = d.bcv ?? "";
-        items = Array.isArray(d.items) ? d.items : [];
-      }catch(e){
-        ensureDefaultInitialPct();
-      }
-    }
+    const name = `${store} — ${type}`;
+    items.push({ store, type, name, qty, price, tax });
 
-    function updateAddBtn(){
-      $("addItemBtn").disabled = !$("brand").value;
-    }
+    $("itemQty").value = "";
+    $("itemPrice").value = "";
+    $("itemTax").value = "";
 
-    function addItem(){
-      const store = $("brand").value;
-      const type = $("itemType").value || "Otros";
-      const qty = Number($("itemQty").value || 0);
-      const price = Number($("itemPrice").value || 0);
-      const tax = Number($("itemTax").value || 0);
+    renderItemsChips();
+    saveDraft();
+    updateInitialPreview();
+  }
 
-      if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
-      if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
+  function removeItem(idx){
+    items.splice(idx,1);
+    renderItemsChips();
+    saveDraft();
+    updateInitialPreview();
+  }
 
-      const name = `${store} — ${type}`;
-      items.push({ store, type, name, qty, price, tax });
+  function renderItemsChips(){
+    const wrap = $("itemsChips");
+    wrap.innerHTML = "";
+    if(items.length === 0){ wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`; return; }
+    items.forEach((it,i)=>{
+      const div=document.createElement("div");
+      div.className="chip";
+      const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
+      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
+      div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
+      wrap.appendChild(div);
+    });
+  }
 
-      $("itemQty").value = "";
-      $("itemPrice").value = "";
-      $("itemTax").value = "";
+  function getPreviewTotals(){
+    const shippingPct = clamp($("shipping").value, 0, 100);
+    const initialPct = clamp($("initial").value, 0, 100);
+    const bcv = Number($("bcv").value || 0);
 
-      renderItemsChips();
-      saveDraft();
-      updateInitialPreview();
-    }
+    const itemsCalc = items.map(it=>{
+      const subtotal = Number(it.price || 0);
+      const tax = Number(it.tax || 0);
+      const total = subtotal + tax;
+      return { ...it, subtotal, tax, total };
+    });
 
-    function removeItem(idx){
-      items.splice(idx,1);
-      renderItemsChips();
-      saveDraft();
-      updateInitialPreview();
+    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+    const shippingUSD = totalItemsUSD * (shippingPct / 100);
+    const totalUSD = totalItemsUSD + shippingUSD;
+
+    const initialUSD = totalUSD * (initialPct / 100);
+    const initialBs = bcv ? initialUSD * bcv : 0;
+
+    return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
+  }
+
+  function updateInitialPreview(){
+    const el = $("initialPreview");
+    if(!el) return;
+
+    if(items.length === 0){
+      el.textContent = "Inicial estimada: —";
+      return;
     }
 
-    function renderItemsChips(){
-      const wrap = $("itemsChips");
-      wrap.innerHTML = "";
-      if(items.length === 0){ wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`; return; }
-      items.forEach((it,i)=>{
-        const div=document.createElement("div");
-        div.className="chip";
-        const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
-        div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
-        div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
-        wrap.appendChild(div);
-      });
+    const p = getPreviewTotals();
+    const usdTxt = `$${fmt(p.initialUSD)}`;
+    const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
+    el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
+  }
+
+  function calculate(){
+    if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
+    const store = $("brand").value;
+    if(!store){ alert("Selecciona una Tienda antes de calcular."); $("brand").focus(); return; }
+
+    const shippingPct = clamp($("shipping").value, 0, 100);
+    const initialPct = clamp($("initial").value, 0, 100);
+    const bcv = Number($("bcv").value || 0);
+
+    const itemsCalc = items.map(it=>{
+      const subtotal = Number(it.price || 0);
+      const tax = Number(it.tax || 0);
+      const total = subtotal + tax;
+      return { ...it, subtotal, tax, total };
+    });
+
+    const subtotalUSD = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
+    const taxesUSD = itemsCalc.reduce((a,b)=>a + b.tax, 0);
+    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+
+    const shippingUSD = totalItemsUSD * (shippingPct / 100);
+    const totalUSD = totalItemsUSD + shippingUSD;
+
+    const initialUSD = totalUSD * (initialPct / 100);
+    const remainingUSD = Math.max(0, totalUSD - initialUSD);
+
+    const totalBs = bcv ? totalUSD * bcv : 0;
+    const initialBs = bcv ? initialUSD * bcv : 0;
+    const remainingBs = bcv ? remainingUSD * bcv : 0;
+
+    const quote = {
+      client:$("client").value.trim(),
+      date:$("date").value,
+      brand:store,
+      shippingPct,
+      initialPct,
+      initialUSD,
+      bcv,
+      items:itemsCalc,
+      subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
+      remainingUSD,
+      totalBs, initialBs, remainingBs
+    };
+
+    lastQuote = quote;
+    renderResults(quote);
+
+    history.unshift(quote);
+    history = history.slice(0, 50);
+    localStorage.setItem(STORAGE.history_u, JSON.stringify(history));
+    localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
+    renderHistory();
+    saveDraft();
+  }
+
+  function renderResults(q){
+    const r = $("results");
+    const lines = q.items.map(it=>`
+      <tr>
+        <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
+        <td>$${fmt(it.subtotal)}</td>
+        <td>$${fmt(it.tax)}</td>
+        <td><b>$${fmt(it.total)}</b></td>
+      </tr>
+    `).join("");
+
+    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+
+    r.innerHTML = `
+      <div class="kpis">
+        <div class="kpi">
+          <div class="t">Total (USD)</div>
+          <div class="v">$${fmt(q.totalUSD)}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Total (Bs)</div>
+          <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Inicial (%)</div>
+          <div class="v">${fmtPct(pct)}%</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Inicial (USD / Bs)</div>
+          <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Restante (USD)</div>
+          <div class="v">$${fmt(q.remainingUSD)}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Restante (Bs)</div>
+          <div class="v">${q.bcv ? fmt(q.remainingBs) + " Bs" : "—"}</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" style="min-width:540px;">
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th>Subtotal</th>
+              <th>Impuesto</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lines}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
+        Total artículos: <b>$${fmt(q.totalItemsUSD)}</b> • Envío: <b>$${fmt(q.shippingUSD)}</b>
+      </div>
+    `;
+  }
+
+  function loadHistory(){
+    history = parseSafe(localStorage.getItem(STORAGE.history_u) || "[]", []);
+    if(!Array.isArray(history)) history = [];
+    lastQuote = parseSafe(localStorage.getItem(STORAGE.last_quote_u) || "null", null);
+  }
+
+  function renderHistory(){
+    const list = $("historyList");
+    if(!list) return;
+    if(history.length === 0){
+      list.innerHTML = `<div class="muted">Sin historial.</div>`;
+      return;
     }
 
-    function getPreviewTotals(){
-      const shippingPct = clamp($("shipping").value, 0, 100);
-      const initialPct = clamp($("initial").value, 0, 100);
-      const bcv = Number($("bcv").value || 0);
+    list.innerHTML = "";
+    history.forEach((q, idx)=>{
+      const div = document.createElement("div");
+      div.className = "hist";
 
-      const itemsCalc = items.map(it=>{
-        const subtotal = Number(it.price || 0);
-        const tax = Number(it.tax || 0);
-        const total = subtotal + tax;
-        return { ...it, subtotal, tax, total };
-      });
-
-      const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
-      const shippingUSD = totalItemsUSD * (shippingPct / 100);
-      const totalUSD = totalItemsUSD + shippingUSD;
-
-      const initialUSD = totalUSD * (initialPct / 100);
-      const initialBs = bcv ? initialUSD * bcv : 0;
-
-      return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
-    }
-
-    function updateInitialPreview(){
-      const el = $("initialPreview");
-      if(!el) return;
-
-      if(items.length === 0){
-        el.textContent = "Inicial estimada: —";
-        return;
-      }
-
-      const p = getPreviewTotals();
-      const usdTxt = `$${fmt(p.initialUSD)}`;
-      const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
-      el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
-    }
-
-    function calculate(){
-      if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
-      const store = $("brand").value;
-      if(!store){ alert("Selecciona una Tienda antes de calcular."); $("brand").focus(); return; }
-
-      const shippingPct = clamp($("shipping").value, 0, 100);
-      const initialPct = clamp($("initial").value, 0, 100);
-      const bcv = Number($("bcv").value || 0);
-
-      const itemsCalc = items.map(it=>{
-        const subtotal = Number(it.price || 0);
-        const tax = Number(it.tax || 0);
-        const total = subtotal + tax;
-        return { ...it, subtotal, tax, total };
-      });
-
-      const subtotalUSD = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
-      const taxesUSD = itemsCalc.reduce((a,b)=>a + b.tax, 0);
-      const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
-
-      const shippingUSD = totalItemsUSD * (shippingPct / 100);
-      const totalUSD = totalItemsUSD + shippingUSD;
-
-      const initialUSD = totalUSD * (initialPct / 100);
-      const remainingUSD = Math.max(0, totalUSD - initialUSD);
-
-      const totalBs = bcv ? totalUSD * bcv : 0;
-      const initialBs = bcv ? initialUSD * bcv : 0;
-      const remainingBs = bcv ? remainingUSD * bcv : 0;
-
-      const quote = {
-        client:$("client").value.trim(),
-        date:$("date").value,
-        brand:store,
-        shippingPct,
-        initialPct,
-        initialUSD,
-        bcv,
-        items:itemsCalc,
-        subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
-        remainingUSD,
-        totalBs, initialBs, remainingBs
-      };
-
-      lastQuote = quote;
-      renderResults(quote);
-
-      history.unshift(quote);
-      history = history.slice(0, 50);
-      localStorage.setItem(STORAGE.history_u, JSON.stringify(history));
-      localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
-      renderHistory();
-      saveDraft();
-    }
-
-    function renderResults(q){
-      const r = $("results");
-      const lines = q.items.map(it=>`
-        <tr>
-          <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
-          <td>$${fmt(it.subtotal)}</td>
-          <td>$${fmt(it.tax)}</td>
-          <td><b>$${fmt(it.total)}</b></td>
-        </tr>
-      `).join("");
-
-      const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
-
-      r.innerHTML = `
-        <div class="kpis">
-          <div class="kpi">
-            <div class="t">Total (USD)</div>
-            <div class="v">$${fmt(q.totalUSD)}</div>
+      div.innerHTML = `
+        <div class="hist-top">
+          <div>
+            <b>${escapeHtml(q.client || "—")}</b>
+            <div class="meta">${escapeHtml(q.brand || "—")} • ${escapeHtml(q.date || "—")}</div>
           </div>
-
-          <div class="kpi">
-            <div class="t">Total (Bs)</div>
-            <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
-          </div>
-
-          <div class="kpi">
-            <div class="t">Inicial (%)</div>
-            <div class="v">${fmtPct(pct)}%</div>
-          </div>
-
-          <div class="kpi">
-            <div class="t">Inicial (USD / Bs)</div>
-            <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
-          </div>
-
-          <div class="kpi">
-            <div class="t">Restante (USD)</div>
-            <div class="v">$${fmt(q.remainingUSD)}</div>
+          <div style="text-align:right;">
+            <div style="font-weight:900;">$${fmt(q.totalUSD)}</div>
+            <div class="meta">${q.bcv ? fmt(q.totalBs) + " Bs" : ""}</div>
           </div>
         </div>
 
-        <div class="table-wrap">
-<table class="table">
-          <thead><tr><th>Artículo</th><th>Precio</th><th>Impuesto</th><th>Total</th></tr></thead>
-          <tbody>${lines}</tbody>
-        </table>
-</div>
-
-        <div class="muted" style="margin-top:12px">
-          Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
-          Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
+        <div class="hist-actions">
+          <button data-act="load">📥 Cargar</button>
+          <button data-act="pdf">📄 PDF</button>
+          <button data-act="wa">📲 WhatsApp</button>
+          <button class="del" data-act="del">🗑️ Eliminar</button>
         </div>
       `;
-    }
 
-    function renderHistory(){
-      const list = $("historyList");
-      list.innerHTML = "";
-      if(history.length === 0){ list.innerHTML = `<div class="muted">Aún no hay cotizaciones guardadas.</div>`; return; }
-
-      history.forEach((q, idx)=>{
-        const div = document.createElement("div");
-        div.className = "hist";
-        div.innerHTML = `
-          <div class="hist-top">
-            <div>
-              <b>${escapeHtml(q.client || "Sin cliente")}</b>
-              <div class="meta">${escapeHtml(q.brand || "")} • ${q.date || ""}</div>
-            </div>
-            <div style="font-weight:900">$${fmt(q.totalUSD)}</div>
-          </div>
-          <div class="hist-actions">
-            <button data-act="load" type="button">Cargar</button>
-            <button data-act="pdf" type="button">PDF</button>
-            <button data-act="wa" type="button">WhatsApp</button>
-            <button class="del" data-act="del" type="button">Eliminar</button>
-          </div>
-        `;
-        div.querySelectorAll("button").forEach(btn=>{
-          btn.addEventListener("click", ()=>{
-            const act = btn.getAttribute("data-act");
-            if(act==="load") loadFromHistory(idx);
-            if(act==="pdf") exportPDF(history[idx]);
-            if(act==="wa") shareWhatsApp(history[idx]);
-            if(act==="del") deleteFromHistory(idx);
-          });
+      div.querySelectorAll("button").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const act = btn.getAttribute("data-act");
+          if(act==="load") loadFromHistory(idx);
+          if(act==="pdf") exportPDF(history[idx]);
+          if(act==="wa") shareWhatsApp(history[idx]);
+          if(act==="del") deleteFromHistory(idx);
         });
-        list.appendChild(div);
       });
+
+      list.appendChild(div);
+    });
+  }
+
+  function loadFromHistory(index){
+    const q = history[index];
+    if(!q) return;
+
+    $("client").value = q.client ?? "";
+    $("date").value = q.date ?? nowISODate();
+    $("brand").value = q.brand ?? "";
+    $("shipping").value = q.shippingPct ?? "";
+
+    if(q.initialPct != null){
+      $("initial").value = q.initialPct;
+    }else{
+      const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
+      $("initial").value = String(Math.round(inferred * 100) / 100);
     }
 
-    function loadFromHistory(index){
-      const q = history[index];
-      if(!q) return;
+    $("bcv").value = q.bcv ?? "";
+    items = Array.isArray(q.items) ? [...q.items] : [];
+    renderItemsChips();
 
-      $("client").value = q.client ?? "";
-      $("date").value = q.date ?? nowISODate();
-      $("brand").value = q.brand ?? "";
-      $("shipping").value = q.shippingPct ?? "";
+    lastQuote = q;
+    localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
+    renderResults(q);
+    saveDraft();
+    updateAddBtn();
+    updateInitialPreview();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
 
-      if(q.initialPct != null){
-        $("initial").value = q.initialPct;
-      }else{
-        const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
-        $("initial").value = String(Math.round(inferred * 100) / 100);
-      }
+  function deleteFromHistory(index){
+    if(!confirm("¿Eliminar esta cotización del historial?")) return;
+    history.splice(index, 1);
+    localStorage.setItem(STORAGE.history_u, JSON.stringify(history));
+    renderHistory();
+  }
 
-      $("bcv").value = q.bcv ?? "";
-      items = Array.isArray(q.items) ? [...q.items] : [];
-      renderItemsChips();
+  function clearHistory(){
+    if(!confirm("¿Borrar TODO el historial?")) return;
+    history = [];
+    localStorage.removeItem(STORAGE.history_u);
+    renderHistory();
+  }
 
-      lastQuote = q;
-      localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
-      renderResults(q);
-      saveDraft();
-      updateAddBtn();
-      updateInitialPreview();
-      window.scrollTo({top:0, behavior:"smooth"});
-    }
+  // Payments + Terms
+  const DEFAULT_TERMS_LINES = [
+    "No se realizan devoluciones",
+    "La mercancía se paga con inicial para procesar el pedido",
+    "Tiempo estimado de entrega sujeto a la tienda"
+  ];
+  let payments = { bs:"", usd:"", cop:"", usdt:"" };
+  let termsText = "";
 
-    function deleteFromHistory(index){
-      if(!confirm("¿Eliminar esta cotización del historial?")) return;
-      history.splice(index, 1);
-      localStorage.setItem(STORAGE.history_u, JSON.stringify(history));
-      renderHistory();
-    }
+  function loadPayments(){
+    payments = parseSafe(localStorage.getItem(STORAGE.payments_u) || "null", null) || payments;
+  }
+  function savePayments(){
+    localStorage.setItem(STORAGE.payments_u, JSON.stringify(payments));
+  }
+  function applyPaymentsToUI(){
+    if($("pay_bs")) $("pay_bs").value = payments.bs || "";
+    if($("pay_usd")) $("pay_usd").value = payments.usd || "";
+    if($("pay_cop")) $("pay_cop").value = payments.cop || "";
+    if($("pay_usdt")) $("pay_usdt").value = payments.usdt || "";
+  }
+  function readPaymentsFromUI(){
+    payments.bs = $("pay_bs")?.value || "";
+    payments.usd = $("pay_usd")?.value || "";
+    payments.cop = $("pay_cop")?.value || "";
+    payments.usdt = $("pay_usdt")?.value || "";
+    savePayments();
+  }
 
-    function clearHistory(){
-      if(!confirm("¿Borrar TODO el historial?")) return;
-      history = [];
-      localStorage.removeItem(STORAGE.history_u);
-      renderHistory();
-    }
+  function loadTerms(){
+    termsText = localStorage.getItem(STORAGE.terms_u) || "";
+  }
+  function saveTerms(){
+    localStorage.setItem(STORAGE.terms_u, termsText || "");
+  }
+  function applyTermsToUI(){
+    if($("terms_text")) $("terms_text").value = termsText || "";
+  }
+  function readTermsFromUI(){
+    termsText = $("terms_text")?.value || "";
+    saveTerms();
+  }
 
-    function quoteToMessage(q){
-      const dt = nowDateTimeVE();
+  function formatTermsForWA(text){
+    const lines = String(text || "").split("\n").map(s=>s.trim()).filter(Boolean);
+    const use = lines.length ? lines : DEFAULT_TERMS_LINES;
+    return use.map(l=>`• ${l}`).join("\n");
+  }
 
-      const itemsLines = q.items.map((it, i)=>{
-        const qty = it.qty ? ` • Cant: ${it.qty}` : "";
-        return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
-      }).join("\n");
+  function quoteToMessage(q){
+    const dt = nowDateTimeVE();
 
-      const totalUSD = q.totalUSD;
-      const inicialUSD = q.initialUSD;
-      const restanteUSD = q.remainingUSD;
+    const itemsLines = q.items.map((it, i)=>{
+      const qty = it.qty ? ` • Cant: ${it.qty}` : "";
+      return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
+    }).join("\n");
 
-      const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+    const totalUSD = q.totalUSD;
+    const inicialUSD = q.initialUSD;
+    const restanteUSD = q.remainingUSD;
 
-      const tasa = Number(q.bcv || 0);
-      const inicialBs = tasa ? q.initialBs : 0;
-      const totalBs = tasa ? q.totalBs : 0;
+    const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
 
-      const payBS = (payments.bs || "").trim();
-      const payUSD = (payments.usd || "").trim();
-      const payCOP = (payments.cop || "").trim();
-      const payUSDT = (payments.usdt || "").trim();
+    const tasa = Number(q.bcv || 0);
+    const inicialBs = tasa ? q.initialBs : 0;
+    const totalBs = tasa ? q.totalBs : 0;
 
-      const termsBlock = formatTermsForWA(termsText || DEFAULT_TERMS_LINES);
+    const payBS = (payments.bs || "").trim();
+    const payUSD = (payments.usd || "").trim();
+    const payCOP = (payments.cop || "").trim();
+    const payUSDT = (payments.usdt || "").trim();
 
-      return [
+    const termsBlock = formatTermsForWA(termsText || DEFAULT_TERMS_LINES);
+
+    return [
 `🧾 *COTIZACIÓN*
 🏷️ Tienda: *${q.brand || "—"}*
 👤 Cliente: *${q.client || "—"}*
@@ -1497,250 +1579,519 @@ button, .btn, .icon-btn { min-height: 44px; }
 `📦 *DETALLE DE ARTÍCULOS*
 ${itemsLines}`,
 
-`💰 *RESUMEN (USD)*
-• Total costo artículos: *$${fmt(q.totalItemsUSD)}*
-• Envío internacional (${fmtPct(q.shippingPct)}%): *$${fmt(q.shippingUSD)}*
-• *TOTAL A PAGAR: $${fmt(totalUSD)}*`,
+`💰 *RESUMEN*
+Subtotal: $${fmt(q.subtotalUSD)}
+Impuestos: $${fmt(q.taxesUSD)}
+Total artículos: $${fmt(q.totalItemsUSD)}
+Envío (${fmtPct(q.shippingPct)}%): $${fmt(q.shippingUSD)}
 
-`✅ *PAGO INICIAL*
-• Inicial: *${fmtPct(initialPct)}%*  →  *$${fmt(inicialUSD)}*
-• Inicial en Bs: *${tasa ? fmt(inicialBs) + " Bs" : "—"}*`,
+✅ *TOTAL A PAGAR: $${fmt(totalUSD)}*
+💳 Inicial (${fmtPct(initialPct)}%): $${fmt(inicialUSD)}
+🧾 Restante: $${fmt(restanteUSD)}`,
 
-`🧮 *RESTANTE*
-• Restante: *$${fmt(restanteUSD)}*`,
+`tasa: ${tasa ? fmt(tasa) + " Bs" : "—"}
+Total Bs: ${tasa ? fmt(totalBs) + " Bs" : "—"}
+Inicial Bs: ${tasa ? fmt(inicialBs) + " Bs" : "—"}`,
 
-`📈 *TASA BCV*
-• Tasa usada: *${tasa ? fmt(tasa) + " Bs/USD" : "No indicada"}*
-• Total en Bs (referencia): *${tasa ? fmt(totalBs) + " Bs" : "—"}*`,
-
-`📝 *NOTA*
-El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento de esta cotización.
-⏱️ Generado: ${dt}`,
+`💳 *MÉTODOS DE PAGO*
+Bs: ${payBS || "—"}
+USD: ${payUSD || "—"}
+COP: ${payCOP || "—"}
+USDT: ${payUSDT || "—"}`,
 
 `📌 *TÉRMINOS Y CONDICIONES*
 ${termsBlock}`,
 
-`💳 *MÉTODOS DE PAGO*
-• *Bolívares (Bs):* ${payBS || "—"}
-• *Dólares (USD):* ${payUSD || "—"}
-• *Pesos Colombianos (COP):* ${payCOP || "—"}
-• *USDT:* ${payUSDT || "—"}`
-      ].join("\n\n");
-    }
+`🕒 Generado: ${dt}`
+    ].join("\n\n");
+  }
 
-    function shareWhatsApp(q){
-      if(!q){ alert("Primero calcula una cotización."); return; }
-      const msg = encodeURIComponent(quoteToMessage(q));
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
-    }
+  function shareWhatsApp(q){
+    if(!q) { alert("No hay cotización para enviar."); return; }
+    readPaymentsFromUI();
+    readTermsFromUI();
+    const msg = quoteToMessage(q);
+    const url = "https://wa.me/?text=" + encodeURIComponent(msg);
+    window.open(url, "_blank");
+  }
 
-    function exportPDF(q){
-      if(!q){ alert("Primero calcula una cotización."); return; }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+  // PDF
+  function exportPDF(q){
+    if(!q){ alert("No hay cotización para exportar."); return; }
+    readPaymentsFromUI();
+    readTermsFromUI();
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("Cotización", 14, 16);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      let y = 26;
+    let y = 14;
+    const lh = 7;
 
-      const head = [
-        q.client ? `Cliente: ${q.client}` : "",
-        q.brand ? `Tienda: ${q.brand}` : "",
-        q.date ? `Fecha: ${q.date}` : "",
-        q.bcv ? `Tasa: ${fmt(q.bcv)} Bs/USD` : ""
-      ].filter(Boolean);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(14);
+    doc.text("COTIZACIÓN - Cotizador Pro", 14, y); y += lh;
 
-      head.forEach(line=>{ doc.text(line, 14, y); y += 6; });
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(11);
+    doc.text(`Cliente: ${q.client || "—"}`, 14, y); y += lh;
+    doc.text(`Tienda: ${q.brand || "—"}`, 14, y); y += lh;
+    doc.text(`Fecha: ${q.date || "—"}`, 14, y); y += lh;
+    doc.text(`Tasa (USD→VES): ${q.bcv ? fmt(q.bcv) + " Bs" : "—"}`, 14, y); y += lh;
 
-      y += 4;
-      doc.setFont("helvetica", "bold");
-      doc.text("Items:", 14, y); y += 7;
+    y += 4;
+    doc.setFont("helvetica","bold");
+    doc.text("Detalle de artículos:", 14, y); y += lh;
 
-      doc.setFont("helvetica", "normal");
-      q.items.forEach(it=>{
-        const qty = it.qty ? ` (Cant: ${it.qty})` : "";
-        const line = `- ${it.name}${qty}: $${fmt(it.total)} (P $${fmt(it.subtotal)} + I $${fmt(it.tax)})`;
-        doc.text(line, 14, y);
-        y += 6;
-        if(y > 270){ doc.addPage(); y = 20; }
-      });
-
-      y += 6;
-      doc.setFont("helvetica", "bold");
-      doc.text(`Total USD: $${fmt(q.totalUSD)}`, 14, y); y += 6;
-
-      const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
-      doc.setFont("helvetica", "normal");
-      doc.text(`Inicial (${fmtPct(pct)}%): $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
-
-      if(q.bcv){
-        doc.text(`Total Bs (referencia): ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
-      }
-
-      doc.save(`Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}.pdf`);
-    }
-
-    async function updateRate({force=false}={}){
-      const bcv = $("bcv");
-      const state = $("rateState");
-
-      const last = Number(localStorage.getItem(STORAGE.rate_u) || 0);
-      const lastDay = localStorage.getItem(STORAGE.rate_last_day_u) || "";
-      const today = nowISODate();
-
-      if(!force && last && lastDay === today){
-        bcv.value = last;
-        state.textContent = "Tasa guardada";
-        updateInitialPreview();
-        return;
-      }
-
-      try{
-        state.textContent = "Actualizando...";
-        const res = await fetch("https://open.er-api.com/v6/latest/USD");
-        const data = await res.json();
-        const rate = data?.rates?.VES;
-        if(!rate) throw new Error("Sin tasa");
-        const r = Number(rate).toFixed(2);
-        bcv.value = r;
-        localStorage.setItem(STORAGE.rate_u, r);
-        localStorage.setItem(STORAGE.rate_last_day_u, today);
-        state.textContent = "Tasa actualizada";
-        updateInitialPreview();
-      }catch(e){
-        state.textContent = "Tasa manual";
-        updateInitialPreview();
-      }
-    }
-
-    function resetAll(){
-      if(!confirm("¿Reiniciar formulario e ítems? (No borra historial)")) return;
-      items = [];
-      lastQuote = null;
-      localStorage.removeItem(STORAGE.last_quote_u);
-
-      $("client").value = "";
-      $("date").value = nowISODate();
-      $("brand").value = "";
-      $("itemType").value = "Ropa";
-      $("shipping").value = "";
-      $("initial").value = String(DEFAULT_INITIAL_PCT);
-      $("bcv").value = "";
-
-      $("itemQty").value = "";
-      $("itemPrice").value = "";
-      $("itemTax").value = "";
-
-      $("results").innerHTML = `<div class="muted">Sin cotización todavía.</div>`;
-      renderItemsChips();
-      saveDraft();
-      updateAddBtn();
-      updateInitialPreview();
-    }
-
-    function setClientMode(enabled){
-      document.body.classList.toggle("client", !!enabled);
-      const btn = $("clientModeBtn");
-      if(btn) btn.textContent = enabled ? "Salir de Modo Cliente" : "Modo Cliente";
-      $("modeBadge").textContent = enabled ? "Cliente" : "Admin";
-
-      if(enabled){
-        $("calcDetails").open = true;
-        $("results").scrollIntoView({behavior:"smooth", block:"start"});
-      }
-      localStorage.setItem(STORAGE.mode_u, enabled ? "client" : "admin");
-    }
-
-    // Permisos: solo superadmin puede borrar TODO el historial
-    if(ROLE !== "superadmin"){
-      const btn = $("clearHistoryBtn");
-      if(btn) btn.style.display = "none";
-    }
-
-    // Events
-    $("addItemBtn").onclick = addItem;
-    $("calcBtn").onclick = calculate;
-    $("pdfBtn").onclick = () => exportPDF(lastQuote);
-    $("waBtn").onclick = () => shareWhatsApp(lastQuote);
-    $("resetBtn").onclick = resetAll;
-    $("clearHistoryBtn").onclick = clearHistory;
-
-    $("clientModeBtn").onclick = ()=>{
-      const enabled = !document.body.classList.contains("client");
-      if(enabled && !lastQuote && history.length > 0) lastQuote = history[0];
-      if(lastQuote) localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
-      setClientMode(enabled);
-      if(enabled && lastQuote) renderResults(lastQuote);
-    };
-
-    // Autosave & preview updates
-    ["client","date"].forEach(id=> $(id).addEventListener("input", saveDraft));
-    ["shipping","initial","bcv"].forEach(id=>{
-      $(id).addEventListener("input", ()=>{
-        saveDraft();
-        updateInitialPreview();
-      });
+    doc.setFont("helvetica","normal");
+    q.items.forEach((it, idx)=>{
+      const qty = it.qty ? ` Cant: ${it.qty}` : "";
+      const line = `${idx+1}) ${it.name}${qty} | Subtotal: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
+      doc.text(line, 14, y);
+      y += lh;
+      if(y > 275){ doc.addPage(); y = 14; }
     });
 
-    ["brand","itemType"].forEach(id=>{
-      $(id).addEventListener("change", ()=>{
-        saveDraft();
-        updateAddBtn();
-        updateInitialPreview();
-      });
+    y += 4;
+    doc.setFont("helvetica","bold");
+    doc.text("Resumen:", 14, y); y += lh;
+
+    doc.setFont("helvetica","normal");
+    doc.text(`Subtotal: $${fmt(q.subtotalUSD)}`, 14, y); y += lh;
+    doc.text(`Impuestos: $${fmt(q.taxesUSD)}`, 14, y); y += lh;
+    doc.text(`Total artículos: $${fmt(q.totalItemsUSD)}`, 14, y); y += lh;
+    doc.text(`Envío (${fmtPct(q.shippingPct)}%): $${fmt(q.shippingUSD)}`, 14, y); y += lh;
+
+    doc.setFont("helvetica","bold");
+    doc.text(`TOTAL: $${fmt(q.totalUSD)}`, 14, y); y += lh;
+
+    doc.setFont("helvetica","normal");
+    doc.text(`Inicial ($): $${fmt(q.initialUSD)} | Restante ($): $${fmt(q.remainingUSD)}`, 14, y); y += lh;
+
+    if(q.bcv){
+      doc.text(`Total (Bs): ${fmt(q.totalBs)} Bs`, 14, y); y += lh;
+      doc.text(`Inicial (Bs): ${fmt(q.initialBs)} Bs | Restante (Bs): ${fmt(q.remainingBs)} Bs`, 14, y); y += lh;
+    }
+
+    y += 4;
+    doc.setFont("helvetica","bold");
+    doc.text("Métodos de pago:", 14, y); y += lh;
+    doc.setFont("helvetica","normal");
+    doc.text(`Bs: ${payments.bs || "—"}`, 14, y); y += lh;
+    doc.text(`USD: ${payments.usd || "—"}`, 14, y); y += lh;
+    doc.text(`COP: ${payments.cop || "—"}`, 14, y); y += lh;
+    doc.text(`USDT: ${payments.usdt || "—"}`, 14, y); y += lh;
+
+    y += 4;
+    doc.setFont("helvetica","bold");
+    doc.text("Términos:", 14, y); y += lh;
+    doc.setFont("helvetica","normal");
+    const termsLines = (termsText || "").split("\n").map(s=>s.trim()).filter(Boolean);
+    const useTerms = termsLines.length ? termsLines : DEFAULT_TERMS_LINES;
+    useTerms.forEach(t=>{
+      doc.text("• " + t, 14, y);
+      y += lh;
+      if(y > 275){ doc.addPage(); y = 14; }
     });
 
-    ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=> $(id).addEventListener("input", readPaymentsFromUI));
-    $("terms_text").addEventListener("input", readTermsFromUI);
+    const fname = `Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}_${q.date||""}.pdf`;
+    doc.save(fname);
+  }
 
-    // Mini calc 1
-    function m1(op){
-      const a = Number($("m1a").value||0);
-      const b = Number($("m1b").value||0);
-      let r = 0;
-      if(op === "+") r = a + b;
-      if(op === "-") r = a - b;
-      if(op === "*") r = a * b;
-      $("m1out").textContent = fmt(r);
+  // Mini calculators
+  function m1(op){
+    const a = Number($("m1a").value || 0);
+    const b = Number($("m1b").value || 0);
+    let r = 0;
+    if(op === "+") r = a + b;
+    if(op === "-") r = a - b;
+    if(op === "*") r = a * b;
+    $("m1out").textContent = fmt(r);
+  }
+
+  function m2(op){
+    const a = Number($("m2a").value || 0);
+    const b = Number($("m2b").value || 0);
+    const rate = Number($("bcv").value || 0);
+    if(!rate || rate <= 0){
+      $("m2out").textContent = "Coloca la Tasa BCV para convertir.";
+      return;
     }
-    $("m1plus").onclick = ()=>m1("+");
-    $("m1minus").onclick = ()=>m1("-");
-    $("m1mul").onclick = ()=>m1("*");
 
-    // Mini calc 2
-    function m2(op){
-      const a = Number($("m2a").value || 0);
-      const b = Number($("m2b").value || 0);
-      const rate = Number($("bcv").value || 0);
+    let bs = 0;
+    if(op === "+") bs = a + b;
+    if(op === "-") bs = a - b;
+    if(op === "*") bs = a * b;
 
-      if(!rate || rate <= 0){
-        $("m2out").textContent = "Coloca la Tasa BCV para convertir.";
-        return;
+    const usd = bs / rate;
+    $("m2out").textContent = "$" + fmt(usd);
+  }
+
+  // Cambiar mi contraseña
+  function setPwMsg(t){
+    const el = $("pw_msg");
+    if(el) el.textContent = t;
+  }
+
+  // Gestión de usuarios (superadmin)
+  function normalizeUserId(s){
+    return String(s||"").trim().replace(/\s+/g,"").replace(/[^a-zA-Z0-9_-]/g,"");
+  }
+  function setUserMsg(t){
+    const el = $("nu_msg");
+    if(el) el.textContent = t;
+  }
+
+  function exportUsersPayload(){
+    const custom = loadUserStore() || {};
+    const passStore = loadPassStore() || {};
+    return { version:2, exportedAt: new Date().toISOString(), custom, passStore };
+  }
+
+  function importUsersPayload(txt, { merge=true }={}){
+    const payload = JSON.parse(txt);
+    if(!payload || typeof payload !== "object") throw new Error("JSON inválido.");
+    const custom = payload.custom || {};
+    const passStore = payload.passStore || {};
+    if(merge){
+      const curC = loadUserStore() || {};
+      const curP = loadPassStore() || {};
+      saveUserStore(Object.assign(curC, custom));
+      savePassStore(Object.assign(curP, passStore));
+    }else{
+      saveUserStore(custom);
+      savePassStore(passStore);
+    }
+  }
+
+  function initUserManagementUI(){
+    const active = getActiveUser();
+    const USERS = getUsers();
+    const role = USERS?.[active]?.role || "admin";
+
+    // Solo superadmin ve reset/export/import/create/del
+    const isSuper = role === "superadmin";
+    ["nu_add","nu_refresh","nu_reset_all","ex_users","ex_copy","im_users","im_replace","users_json"].forEach(id=>{
+      const el = $(id);
+      if(el) el.closest(".mini")?.classList.toggle("admin-only", true);
+      if(el && !isSuper){
+        // no ocultamos el contenedor entero para no romper UI,
+        // pero deshabilitamos acciones sensibles
+        if(el.tagName === "BUTTON" || el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.tagName === "SELECT"){
+          el.disabled = true;
+        }
       }
+    });
 
-      let bs = 0;
-      if(op === "+") bs = a + b;
-      if(op === "-") bs = a - b;
-      if(op === "*") bs = a * b;
+    function renderUsersTable(){
+      const tbody = $("usersTableBody");
+      if(!tbody) return;
 
-      const usd = bs / rate;
-      $("m2out").textContent = "$" + fmt(usd);
+      const USERS2 = getUsers();
+      const active2 = getActiveUser();
+      const ROLE2 = USERS2[active2]?.role || "admin";
+
+      const rows = Object.keys(USERS2).sort().map(u=>{
+        const info = USERS2[u];
+        const isDefault = !!DEFAULT_USERS[u];
+        const canDelete = (ROLE2 === "superadmin") && !isDefault;
+
+        return `
+          <tr>
+            <td><b>${escapeHtml(u)}</b></td>
+            <td>${escapeHtml(info.name || "")}</td>
+            <td>${info.role === "superadmin" ? "Admin Maestro" : "Admin"}</td>
+            <td>
+              ${canDelete ? `<button data-del="${escapeHtml(u)}" style="padding:8px 10px;border-radius:12px;border:1px solid var(--line);cursor:pointer;background:color-mix(in srgb, #ef4444 12%, var(--card));font-weight:900;">Eliminar</button>` : `<span class="small">—</span>`}
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      tbody.innerHTML = rows || `<tr><td colspan="4" class="muted">—</td></tr>`;
+
+      tbody.querySelectorAll("button[data-del]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const userId = btn.getAttribute("data-del");
+          if(!userId) return;
+          if(!confirm(`¿Eliminar usuario "${userId}"?`)) return;
+
+          const custom = loadUserStore() || {};
+          const passStore = loadPassStore() || {};
+          delete custom[userId];
+          delete passStore[userId];
+          saveUserStore(custom);
+          savePassStore(passStore);
+
+          setUserMsg("✅ Usuario eliminado.");
+          buildLoginOptions();
+          renderUsersTable();
+        });
+      });
     }
-    $("m2plus").onclick = ()=>m2("+");
-    $("m2minus").onclick = ()=>m2("-");
-    $("m2mul").onclick = ()=>m2("*");
 
-    $("rateBtn").onclick = ()=>updateRate({force:true});
+    if($("nu_refresh")){
+      $("nu_refresh").onclick = ()=>{
+        renderUsersTable();
+        setUserMsg("🔄 Lista actualizada.");
+      };
+    }
 
-    // Cambiar mi contraseña
-    function setPwMsg(t){
-      const el = $("pw_msg");
+    if($("nu_add")){
+      $("nu_add").onclick = ()=>{
+        try{
+          const active2 = getActiveUser();
+          const USERS2 = getUsers();
+          const ROLE2 = USERS2[active2]?.role || "admin";
+          if(ROLE2 !== "superadmin"){
+            setUserMsg("⛔ Solo el Admin Maestro puede crear usuarios.");
+            return;
+          }
+
+          const id = normalizeUserId($("nu_user").value);
+          const name = ($("nu_name").value || "").trim() || id;
+          const pass = ($("nu_pass").value || "").trim();
+          const roleNew = $("nu_role").value || "admin";
+
+          if(!id){ setUserMsg("⚠️ Coloca un ID de usuario."); return; }
+          if(pass.length < 4){ setUserMsg("⚠️ Contraseña mínima 4 caracteres."); return; }
+
+          const custom = loadUserStore() || {};
+          const passStore = loadPassStore() || {};
+
+          if(DEFAULT_USERS[id] || custom[id]){
+            setUserMsg("⚠️ Ese usuario ya existe.");
+            return;
+          }
+
+          custom[id] = { name, role: roleNew, avatar: makeAvatarFromUser(id) };
+          passStore[id] = pass;
+
+          saveUserStore(custom);
+          savePassStore(passStore);
+
+          $("nu_user").value = "";
+          $("nu_name").value = "";
+          $("nu_pass").value = "";
+
+          setUserMsg("✅ Usuario creado.");
+          buildLoginOptions();
+          renderUsersTable();
+        }catch(e){
+          setUserMsg("❌ Error: " + (e?.message || e));
+        }
+      };
+    }
+
+    if($("nu_reset_all")){
+      $("nu_reset_all").onclick = ()=>{
+        const active2 = getActiveUser();
+        const USERS2 = getUsers();
+        const ROLE2 = USERS2[active2]?.role || "admin";
+        if(ROLE2 !== "superadmin"){
+          setUserMsg("⛔ Solo el Admin Maestro puede resetear usuarios.");
+          return;
+        }
+        if(!confirm("¿Seguro? Esto elimina usuarios creados y resetea contraseñas guardadas.")) return;
+
+        localStorage.removeItem(USER_STORE_KEY);
+        localStorage.removeItem(PASS_STORE_KEY);
+        localStorage.removeItem(LOCK_STORE_KEY);
+        localStorage.removeItem(ACTIVE_USER_KEY);
+
+        try{ $("users_json").value = ""; }catch(_){}
+        buildLoginOptions();
+        renderUsersTable();
+
+        alert("✅ Reset listo. Vuelve a iniciar sesión.");
+        location.reload();
+      };
+    }
+
+    function setXMsg(t){
+      const el = $("users_xmsg");
       if(el) el.textContent = t;
     }
+
+    if($("ex_users")){
+      $("ex_users").onclick = ()=>{
+        try{
+          const payload = exportUsersPayload();
+          $("users_json").value = JSON.stringify(payload, null, 2);
+          setXMsg("✅ Exportado. Copia y pégalo en el otro dispositivo.");
+        }catch(e){
+          setXMsg("❌ Error exportando: " + (e?.message || e));
+        }
+      };
+    }
+
+    if($("ex_copy")){
+      $("ex_copy").onclick = async ()=>{
+        try{
+          const txt = $("users_json").value.trim();
+          if(!txt){ setXMsg("⚠️ Primero exporta para generar el JSON."); return; }
+          await navigator.clipboard.writeText(txt);
+          setXMsg("📋 Copiado al portapapeles.");
+        }catch(e){
+          setXMsg("❌ No pude copiar. Copia manualmente el texto.");
+        }
+      };
+    }
+
+    if($("im_users")){
+      $("im_users").onclick = ()=>{
+        try{
+          const txt = $("users_json").value.trim();
+          if(!txt){ setXMsg("⚠️ Pega el JSON primero."); return; }
+          importUsersPayload(txt, { merge:true });
+          setXMsg("✅ Importación completada (mezclado).");
+          buildLoginOptions();
+          renderUsersTable();
+        }catch(e){
+          setXMsg("❌ Error importando: " + (e?.message || e));
+        }
+      };
+    }
+
+    if($("im_replace")){
+      $("im_replace").onclick = ()=>{
+        try{
+          const txt = $("users_json").value.trim();
+          if(!txt){ setXMsg("⚠️ Pega el JSON primero."); return; }
+          if(!confirm("¿Seguro? Esto REEMPLAZA los usuarios creados en este dispositivo.")) return;
+          importUsersPayload(txt, { merge:false });
+          setXMsg("✅ Importación completada (reemplazado).");
+          buildLoginOptions();
+          renderUsersTable();
+        }catch(e){
+          setXMsg("❌ Error importando: " + (e?.message || e));
+        }
+      };
+    }
+
+    renderUsersTable();
+  }
+
+  function init(){
+    applyTheme();
+    updateActiveUserBadge();
+    initStorageKeys();
+
+    const active = getActiveUser();
+    if(!active){
+      showLogin();
+      return;
+    }
+
+    resetInactivityTimer();
+
+    // Datos iniciales
+    buildLoginOptions();
+
+    loadDraft();
+    loadHistory();
+    loadPayments();
+    loadTerms();
+    applyPaymentsToUI();
+    applyTermsToUI();
+    ensureDefaultInitialPct();
+    renderHistory();
+    renderItemsChips();
+    updateAddBtn();
+    updateInitialPreview();
+
+    const savedMode = localStorage.getItem(STORAGE.mode_u);
+    if(savedMode === "client"){
+      if(!lastQuote && history.length > 0) lastQuote = history[0];
+      if(lastQuote) localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
+      setClientMode(true);
+      if(lastQuote) renderResults(lastQuote);
+    }else{
+      $("modeBadge").textContent = "Admin";
+      document.body.classList.remove("client");
+    }
+
+    updateRate({ force: false });
+    updatePrivateToggleText();
+    initUserManagementUI();
+  }
+
+  /* ===========================
+     EVENTS
+  =========================== */
+  on("loginBtn","click", doLogin);
+  on("loginClearBtn","click", ()=>{
+    if($("loginPass")){ $("loginPass").value = ""; $("loginPass").focus(); }
+  });
+  on("loginPass","keydown", (e)=>{ if(e.key === "Enter") doLogin(); });
+  on("loginUser","change", updateLoginPreview);
+  on("logoutBtn","click", doLogout);
+
+  on("themeToggle","click", toggleTheme);
+
+  on("clientModeBtn","click", ()=>{
+    const onNow = document.body.classList.contains("client");
+    setClientMode(!onNow);
+  });
+
+  on("privateDetails","toggle", updatePrivateToggleText);
+  on("privateToggleBtn","click", (e)=>{
+    e.preventDefault();
+    const det = $("privateDetails");
+    det.open = !det.open;
+    updatePrivateToggleText();
+  });
+
+  on("brand","change", ()=>{ updateAddBtn(); saveDraft(); });
+
+  on("addItemBtn","click", addItem);
+
+  on("shipping","input", ()=>{ saveDraft(); updateInitialPreview(); });
+  on("initial","input", ()=>{ saveDraft(); updateInitialPreview(); });
+  on("bcv","input", ()=>{ saveDraft(); updateInitialPreview(); });
+
+  on("calcBtn","click", calculate);
+  on("resetBtn","click", ()=>{
+    if(!confirm("¿Reiniciar cotización actual?")) return;
+    items = [];
+    lastQuote = null;
+    $("client").value = "";
+    $("brand").value = "";
+    $("bcv").value = "";
+    $("shipping").value = "";
+    $("initial").value = "";
+    $("date").value = nowISODate();
+    localStorage.removeItem(STORAGE.draft_u);
+    localStorage.removeItem(STORAGE.last_quote_u);
+    $("results").innerHTML = `<div class="muted">Sin cotización todavía.</div>`;
+    renderItemsChips();
+    updateAddBtn();
+    updateInitialPreview();
+  });
+
+  on("clearHistoryBtn","click", clearHistory);
+
+  on("pdfBtn","click", ()=>exportPDF(lastQuote));
+  on("waBtn","click", ()=>shareWhatsApp(lastQuote));
+
+  // Payments & terms autosave
+  ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=>{
+    on(id,"input", readPaymentsFromUI);
+  });
+  on("terms_text","input", readTermsFromUI);
+
+  // Mini calcs
+  if($("m1plus")) $("m1plus").onclick = ()=>m1("+");
+  if($("m1minus")) $("m1minus").onclick = ()=>m1("-");
+  if($("m1mul")) $("m1mul").onclick = ()=>m1("*");
+
+  if($("m2plus")) $("m2plus").onclick = ()=>m2("+");
+  if($("m2minus")) $("m2minus").onclick = ()=>m2("-");
+  if($("m2mul")) $("m2mul").onclick = ()=>m2("*");
+
+  if($("rateBtn")) $("rateBtn").onclick = ()=>updateRate({force:true});
+
+  // Cambiar mi contraseña
+  if($("pw_save")){
     $("pw_save").onclick = ()=>{
       const USERS_NOW = getUsers();
       const u = getActiveUser();
@@ -1775,261 +2126,20 @@ ${termsBlock}`,
       buildLoginOptions();
       updateLoginPreview();
     };
-
-    // Gestión de usuarios (superadmin)
-    function normalizeUserId(s){
-      return String(s||"").trim().replace(/\s+/g,"").replace(/[^a-zA-Z0-9_-]/g,"");
-    }
-    function setUserMsg(t){
-      const el = $("nu_msg");
-      if(el) el.textContent = t;
-    }
-
-    function renderUsersTable(){
-      const tbody = $("usersTableBody");
-      if(!tbody) return;
-
-      const USERS2 = getUsers();
-      const active2 = getActiveUser();
-      const ROLE2 = USERS2[active2]?.role || "admin";
-
-      const rows = Object.keys(USERS2).sort().map(u=>{
-        const info = USERS2[u];
-        const isDefault = !!DEFAULT_USERS[u];
-        const canDelete = (ROLE2 === "superadmin") && !isDefault;
-        const canReset = (ROLE2 === "superadmin") && (u !== active2);
-
-        return `
-          <tr>
-            <td><b>${u}</b></td>
-            <td>${info.name || u}</td>
-            <td>${info.role === "superadmin" ? "Admin Maestro" : "Admin"}</td>
-            <td style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-soft" type="button" data-act="resetpw" data-user="${u}" ${canReset?"":"disabled"}>🔁 Reset clave</button>
-              <button class="btn btn-danger" type="button" data-act="deluser" data-user="${u}" ${canDelete?"":"disabled"}>🗑️ Eliminar</button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-
-      tbody.innerHTML = rows || `<tr><td colspan="4" class="muted">—</td></tr>`;
-
-      tbody.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const act = btn.getAttribute("data-act");
-          const u = btn.getAttribute("data-user");
-
-          const USERS3 = getUsers();
-          const active3 = getActiveUser();
-          const ROLE3 = USERS3[active3]?.role || "admin";
-
-          if(ROLE3 !== "superadmin"){
-            setUserMsg("⛔ Solo Admin Maestro puede gestionar usuarios.");
-            return;
-          }
-
-          if(act === "deluser"){
-            if(DEFAULT_USERS[u]){ setUserMsg("⚠️ No puedes eliminar usuarios base."); return; }
-            if(!confirm(`¿Eliminar el usuario "${u}"?`)) return;
-
-            const store = loadUserStore();
-            delete store[u];
-            saveUserStore(store);
-
-            const passStore = loadPassStore();
-            delete passStore[u];
-            savePassStore(passStore);
-
-            buildLoginOptions();
-            renderUsersTable();
-            setUserMsg(`✅ Usuario "${u}" eliminado.`);
-          }
-
-          if(act === "resetpw"){
-            const pw = prompt(`Nueva contraseña para "${u}" (mínimo 4):`);
-            if(pw == null) return;
-            const p = String(pw).trim();
-            if(p.length < 4){ setUserMsg("⚠️ Mínimo 4 caracteres."); return; }
-
-            const passStore = loadPassStore();
-            passStore[u] = p;
-            savePassStore(passStore);
-
-            setUserMsg(`✅ Contraseña actualizada para "${u}".`);
-          }
-        });
-      });
-    }
-
-    function initUserManagementUI(){
-      if(!$("nu_add")) return;
-
-      if(ROLE !== "superadmin"){
-        $("nu_add").disabled = true;
-        setUserMsg("ℹ️ Estás en modo Admin. No puedes crear/eliminar usuarios.");
-      }else{
-        setUserMsg("Listo para crear usuarios.");
-      }
-
-      $("nu_add").onclick = ()=>{
-        if(ROLE !== "superadmin"){ setUserMsg("⛔ Solo Admin Maestro."); return; }
-
-        const user = normalizeUserId($("nu_user").value);
-        const name = ($("nu_name").value || "").trim() || user;
-        const pass = ($("nu_pass").value || "").trim();
-        const role = $("nu_role").value === "superadmin" ? "superadmin" : "admin";
-
-        if(!user){ setUserMsg("⚠️ Usuario inválido."); return; }
-        if(pass.length < 4){ setUserMsg("⚠️ Contraseña mínimo 4 caracteres."); return; }
-
-        const all = getUsers();
-        if(all[user]){ setUserMsg("⚠️ Ya existe ese usuario."); return; }
-
-        const store = loadUserStore();
-        store[user] = { name, role, avatar: makeAvatarFromUser(user) };
-        saveUserStore(store);
-
-        const passStore = loadPassStore();
-        passStore[user] = pass;
-        savePassStore(passStore);
-
-        $("nu_user").value = "";
-        $("nu_name").value = "";
-        $("nu_pass").value = "";
-        $("nu_role").value = "admin";
-
-        buildLoginOptions();
-        renderUsersTable();
-        setUserMsg(`✅ Usuario "${user}" creado.`);
-      };
-
-      $("nu_refresh").onclick = ()=>{
-        buildLoginOptions();
-        renderUsersTable();
-        setUserMsg("🔄 Lista actualizada.");
-      };
-      // 🧨 Reset total de usuarios/contraseñas/bloqueos (NO borra historial ni cotizaciones)
-      if($("nu_reset_all")){
-        if(ROLE !== "superadmin"){
-          $("nu_reset_all").disabled = true;
-        }else{
-          $("nu_reset_all").onclick = ()=>{
-            if(!confirm("¿Resetear usuarios?\n\nEsto elimina: usuarios creados, contraseñas guardadas y bloqueos.\nNO borra historial/cotizaciones.\n\nSe cerrará la sesión.")) return;
-
-            localStorage.removeItem(USER_STORE_KEY);
-            localStorage.removeItem(PASS_STORE_KEY);
-            localStorage.removeItem(LOCK_STORE_KEY);
-            localStorage.removeItem(ACTIVE_USER_KEY);
-
-            // Limpia UI
-            try{ $("users_json").value = ""; }catch(_){}
-            buildLoginOptions();
-            renderUsersTable();
-
-            alert("✅ Reset listo. Vuelve a iniciar sesión.");
-            location.reload();
-          };
-        }
-      }
-
-
-      $("ex_users").onclick = ()=>{
-        try{
-          const payload = exportUsersPayload();
-          $("users_json").value = JSON.stringify(payload, null, 2);
-          setXMsg("✅ Exportado. Copia y pégalo en el otro dispositivo.");
-        }catch(e){
-          setXMsg("❌ Error exportando: " + (e?.message || e));
-        }
-      };
-
-      $("ex_copy").onclick = async ()=>{
-        try{
-          const txt = $("users_json").value.trim();
-          if(!txt){ setXMsg("⚠️ Primero exporta para generar el JSON."); return; }
-          await navigator.clipboard.writeText(txt);
-          setXMsg("📋 Copiado al portapapeles.");
-        }catch(e){
-          setXMsg("❌ No pude copiar. Copia manualmente el texto.");
-        }
-      };
-
-      $("im_users").onclick = ()=>{
-        try{
-          const txt = $("users_json").value.trim();
-          if(!txt){ setXMsg("⚠️ Pega el JSON primero."); return; }
-          importUsersPayload(txt, { merge:true });
-          setXMsg("✅ Importación completada (mezclado).");
-        }catch(e){
-          setXMsg("❌ Error importando: " + (e?.message || e));
-        }
-      };
-
-      $("im_replace").onclick = ()=>{
-        try{
-          const txt = $("users_json").value.trim();
-          if(!txt){ setXMsg("⚠️ Pega el JSON primero."); return; }
-          if(!confirm("¿Seguro? Esto REEMPLAZA los usuarios creados en este dispositivo.")) return;
-          importUsersPayload(txt, { merge:false });
-          setXMsg("✅ Importación completada (reemplazado).");
-        }catch(e){
-          setXMsg("❌ Error importando: " + (e?.message || e));
-        }
-      };
-
-      renderUsersTable();
-    }
-
-    // Guardar draft y cargar
-    loadDraft();
-    applyPaymentsToUI();
-    applyTermsToUI();
-    ensureDefaultInitialPct();
-    renderHistory();
-    renderItemsChips();
-    updateAddBtn();
-    updateInitialPreview();
-
-    const savedMode = localStorage.getItem(STORAGE.mode_u);
-    if(savedMode === "client"){
-      if(!lastQuote && history.length > 0) lastQuote = history[0];
-      if(lastQuote) localStorage.setItem(STORAGE.last_quote_u, JSON.stringify(lastQuote));
-      setClientMode(true);
-      if(lastQuote) renderResults(lastQuote);
-    }else{
-      $("modeBadge").textContent = "Admin";
-      document.body.classList.remove("client");
-    }
-
-    updateRate({ force: false });
-    updatePrivateToggleText();
-    initUserManagementUI();
   }
 
-  /* ===========================
-     LOGIN EVENTS
-  =========================== */
-  on("loginBtn","click", doLogin);
-  on("loginClearBtn","click", ()=>{
-    if($("loginPass")){ $("loginPass").value = ""; $("loginPass").focus(); }
-  });
-  on("loginPass","keydown", (e)=>{ if(e.key === "Enter") doLogin(); });
-  on("loginUser","change", updateLoginPreview);
-  on("logoutBtn","click", doLogout);
-
-  // Arranque (blindado)
-  updateActiveUserBadge();
-  const active = getActiveUser();
-  if(!active){
-    showLogin();
-  }else{
-    try{ boot(); }
-    catch(err){
-      console.error(err);
-      alert("Se detectó un error al iniciar. Se cerró la sesión para evitar bloqueo.\n\nAbre F12 > Console para ver el error.");
+  // Init with safety net
+  try{
+    init();
+  }catch(err){
+    console.error(err);
+    try{
+      alert("❌ Ocurrió un error al iniciar.\n\nRevisa consola para detalles.\n\nSi el error fue por usuarios/almacenamiento, se cerrará sesión.");
+    }catch(_){}
+    try{
       localStorage.removeItem(ACTIVE_USER_KEY);
       showLogin();
-    }
+    }catch(_){}
   }
 
 })();
