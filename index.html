@@ -445,8 +445,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
             <input class="input" id="shipping" type="number" step="0.01" min="0" placeholder="Ej: 10" />
           </div>
           <div class="field">
-            <label>Inicial ($)</label>
-            <input class="input" id="initial" type="number" step="0.01" min="0" placeholder="Ej: 20" />
+            <label>Inicial (%)</label>
+            <input class="input" id="initial" type="number" step="0.01" min="0" max="100" placeholder="Ej: 30" />
           </div>
         </div>
 
@@ -501,7 +501,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
                 <div class="mini-out" id="m2out">$0.00</div>
               </div>
 
-              <!-- ✅ NUEVO: Métodos de pago editables -->
+              <!-- ✅ Métodos de pago editables -->
               <div class="mini" style="grid-column: 1 / -1;">
                 <h3>Métodos de pago (se envían por WhatsApp)</h3>
                 <div class="row">
@@ -524,7 +524,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
                     <textarea id="pay_usdt" class="input" placeholder="Ej: Binance Pay"></textarea>
                   </div>
                 </div>
-                <div class="small">Tip: escribe los métodos separados por coma para que se vea limpio en el mensaje.</div>
+                <div class="small">Tip: separa métodos por coma para que salga limpio en el mensaje.</div>
               </div>
 
             </div>
@@ -579,6 +579,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     last_quote: "cotizador_last_quote_v1",
     payments: "cotizador_payments_v1"
   };
+
+  const DEFAULT_INITIAL_PCT = 30; // ✅ valor por defecto
 
   const $ = (id)=>document.getElementById(id);
 
@@ -682,6 +684,12 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     localStorage.setItem(STORAGE.theme, isDark ? "dark" : "light");
   });
 
+  function ensureDefaultInitialPct(){
+    if($("initial").value === "" || $("initial").value == null){
+      $("initial").value = String(DEFAULT_INITIAL_PCT);
+    }
+  }
+
   function saveDraft(){
     const draft = {
       client: $("client").value.trim(),
@@ -689,7 +697,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       brand: $("brand").value,
       itemType: $("itemType").value,
       shipping: $("shipping").value,
-      initial: $("initial").value,
+      initial: $("initial").value, // ✅ ahora es %
       bcv: $("bcv").value,
       items: items
     };
@@ -698,7 +706,10 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
   function loadDraft(){
     const raw = localStorage.getItem(STORAGE.draft);
-    if(!raw) return;
+    if(!raw){
+      ensureDefaultInitialPct();
+      return;
+    }
     try{
       const d = JSON.parse(raw);
       $("client").value = d.client ?? "";
@@ -706,10 +717,12 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       $("brand").value = d.brand ?? "";
       $("itemType").value = d.itemType ?? "Ropa";
       $("shipping").value = d.shipping ?? "";
-      $("initial").value = d.initial ?? "";
+      $("initial").value = (d.initial ?? "") !== "" ? d.initial : String(DEFAULT_INITIAL_PCT);
       $("bcv").value = d.bcv ?? "";
       items = Array.isArray(d.items) ? d.items : [];
-    }catch(e){}
+    }catch(e){
+      ensureDefaultInitialPct();
+    }
   }
 
   // Deshabilitar / habilitar botón Agregar si no hay tienda
@@ -791,7 +804,10 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     }
 
     const shippingPct = clamp($("shipping").value, 0, 100);
-    const initialUSD = clamp($("initial").value, 0, 999999999);
+
+    // ✅ Inicial ahora es %
+    const initialPct = clamp($("initial").value, 0, 100);
+
     const bcv = Number($("bcv").value || 0);
 
     const itemsCalc = items.map(it=>{
@@ -808,6 +824,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const shippingUSD = totalItemsUSD * (shippingPct / 100);
     const totalUSD = totalItemsUSD + shippingUSD;
 
+    // ✅ calcular inicial en USD desde %
+    const initialUSD = totalUSD * (initialPct / 100);
     const remainingUSD = Math.max(0, totalUSD - initialUSD);
 
     const totalBs = bcv ? totalUSD * bcv : 0;
@@ -819,7 +837,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       date: $("date").value,
       brand: store,
       shippingPct,
-      initialUSD,
+      initialPct,   // ✅ guardamos %
+      initialUSD,   // ✅ guardamos monto calculado
       bcv,
       items: itemsCalc,
       subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
@@ -851,6 +870,9 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
         <td><b>$${fmt(it.total)}</b></td>
       </tr>
     `).join("");
+
+    // Compatibilidad: si cotización vieja no tiene initialPct
+    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : 0));
 
     r.innerHTML = `
       <div class="kpis">
@@ -889,7 +911,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
         Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
       </div>
       <div class="muted" style="margin-top:6px">
-        Inicial: <b>$${fmt(q.initialUSD)}</b> • Restante: <b>$${fmt(q.remainingUSD)}</b>
+        Inicial (${fmtPct(pct)}%): <b>$${fmt(q.initialUSD)}</b> • Restante: <b>$${fmt(q.remainingUSD)}</b>
       </div>
     `;
   }
@@ -943,7 +965,15 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     $("date").value = q.date ?? nowISODate();
     $("brand").value = q.brand ?? "";
     $("shipping").value = q.shippingPct ?? "";
-    $("initial").value = q.initialUSD ?? "";
+
+    // si es vieja: intenta inferir %
+    if(q.initialPct != null){
+      $("initial").value = q.initialPct;
+    }else{
+      const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
+      $("initial").value = String(Math.round(inferred * 100) / 100);
+    }
+
     $("bcv").value = q.bcv ?? "";
 
     items = Array.isArray(q.items) ? [...q.items] : [];
@@ -971,7 +1001,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     renderHistory();
   }
 
-  // ✅ WhatsApp organizado (sin restante en Bs)
+  // ✅ WhatsApp organizado (restante SOLO USD)
   function quoteToMessage(q){
     const dt = nowDateTimeVE();
 
@@ -987,7 +1017,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const inicialUSD = q.initialUSD;
     const restanteUSD = q.remainingUSD;
 
-    const initialPct = totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : 0;
+    const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
 
     const tasa = Number(q.bcv || 0);
     const inicialBs = tasa ? q.initialBs : 0;
@@ -1013,7 +1043,7 @@ ${itemsLines}`,
 • *TOTAL A PAGAR: $${fmt(totalUSD)}*`,
 
 `✅ *PAGO INICIAL*
-• Inicial: *$${fmt(inicialUSD)}* (${fmtPct(initialPct)}%)
+• Inicial: *${fmtPct(initialPct)}%*  →  *$${fmt(inicialUSD)}*
 • Inicial en Bs: *${tasa ? fmt(inicialBs) + " Bs" : "—"}*`,
 
 `🧮 *RESTANTE*
@@ -1088,11 +1118,12 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     doc.setFont("helvetica", "bold");
     doc.text(`Total USD: $${fmt(q.totalUSD)}`, 14, y); y += 6;
 
+    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
     doc.setFont("helvetica", "normal");
-    doc.text(`Inicial USD: $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
+    doc.text(`Inicial (${fmtPct(pct)}%): $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
 
     if(q.bcv){
-      doc.text(`Total Bs: ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
+      doc.text(`Total Bs (referencia): ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
     }
 
     doc.save(`Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}.pdf`);
@@ -1139,7 +1170,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
     $("brand").value = "";
     $("itemType").value = "Ropa";
     $("shipping").value = "";
-    $("initial").value = "";
+    $("initial").value = String(DEFAULT_INITIAL_PCT); // ✅ default 30%
     $("bcv").value = "";
 
     $("itemQty").value = "";
@@ -1232,6 +1263,7 @@ El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento
   // Run init
   loadDraft();
   applyPaymentsToUI();
+  ensureDefaultInitialPct();
   renderHistory();
   renderItemsChips();
   updateAddBtn();
