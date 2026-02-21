@@ -109,9 +109,7 @@ header{
   font-weight:700;
 }
 .icon-btn:hover{ transform: translateY(-1px); }
-.icon{
-  font-size: 16px;
-}
+.icon{ font-size:16px; }
 
 .grid{
   display:grid;
@@ -119,7 +117,6 @@ header{
   gap: 14px;
   margin-top: 14px;
 }
-
 @media (max-width: 980px){
   .grid{ grid-template-columns: 1fr; }
 }
@@ -137,11 +134,7 @@ header{
   display:flex; align-items:center; justify-content:space-between;
   border-bottom: 1px solid var(--line);
 }
-.card .head h2{
-  margin:0;
-  font-size: 15px;
-  letter-spacing:.2px;
-}
+.card .head h2{ margin:0; font-size:15px; letter-spacing:.2px; }
 .card .content{ padding: 14px 16px 16px; }
 
 .row{
@@ -149,16 +142,11 @@ header{
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-@media (max-width: 520px){
-  .row{ grid-template-columns: 1fr; }
-}
+@media (max-width: 520px){ .row{ grid-template-columns: 1fr; } }
 
 .field label{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  font-size: 12px;
-  color: var(--muted);
+  display:flex; justify-content:space-between; gap:10px;
+  font-size: 12px; color: var(--muted);
   margin: 2px 0 6px;
 }
 .input, select{
@@ -177,9 +165,7 @@ header{
 }
 
 .actions{
-  display:flex;
-  gap:10px;
-  flex-wrap: wrap;
+  display:flex; gap:10px; flex-wrap: wrap;
   margin-top: 12px;
 }
 .btn{
@@ -213,6 +199,11 @@ header{
   background: color-mix(in srgb, var(--card) 92%, transparent);
   border: 1px solid var(--line);
 }
+.btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
 .badge{
   font-size: 12px;
   font-weight:800;
@@ -230,22 +221,18 @@ hr.sep{
 
 .muted{ color:var(--muted); font-size: 13px; }
 
-/* ✅ Ajuste pro: ahora tenemos un campo extra (Artículos/Servicios) */
+/* ✅ Sin campo "Artículo": ajustamos el grid */
 .item-line{
   display:grid;
-  grid-template-columns: .8fr 1.1fr .55fr .75fr .75fr auto;
+  grid-template-columns: .95fr .65fr .85fr .85fr auto;
   gap:10px;
   align-items:end;
 }
 @media (max-width: 780px){
   .item-line{ grid-template-columns: 1fr 1fr; }
-  .item-line .span2{ grid-column: span 2; }
 }
 
-.small{
-  font-size: 12px;
-  color: var(--muted);
-}
+.small{ font-size: 12px; color: var(--muted); }
 
 .chips{
   display:flex; flex-wrap:wrap; gap:8px;
@@ -270,9 +257,7 @@ hr.sep{
 }
 .chip .x:hover{ filter: brightness(1.05); }
 
-.results{
-  padding: 14px 16px;
-}
+.results{ padding: 14px 16px; }
 .kpis{
   display:grid;
   grid-template-columns: 1fr 1fr;
@@ -353,9 +338,7 @@ details.private summary::-webkit-details-marker{ display:none; }
   background: color-mix(in srgb, var(--success) 10%, var(--card));
 }
 
-.history-list{
-  display:flex; flex-direction:column; gap:10px;
-}
+.history-list{ display:flex; flex-direction:column; gap:10px; }
 .hist{
   border:1px solid var(--line);
   background: color-mix(in srgb, var(--card) 92%, transparent);
@@ -376,9 +359,7 @@ details.private summary::-webkit-details-marker{ display:none; }
   cursor:pointer;
   font-weight:800;
 }
-.hist-actions .del{
-  background: color-mix(in srgb, var(--danger) 12%, var(--card));
-}
+.hist-actions .del{ background: color-mix(in srgb, var(--danger) 12%, var(--card)); }
 
 body.client .admin-only{ display:none !important; }
 body.client .grid{ grid-template-columns: 1fr; }
@@ -452,11 +433,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
               <option value="Accesorios">Accesorios</option>
               <option value="Otros">Otros</option>
             </select>
-          </div>
-
-          <div class="field span2">
-            <label>Artículo</label>
-            <input class="input" id="itemName" placeholder="Ej: Blusa, Pantalón..." />
           </div>
 
           <div class="field">
@@ -587,13 +563,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
 <script>
 (function(){
-  const CONFIG = {
-    brandName: "Cotizador Pro",
-    currency: "USD",
-    defaultShippingPct: 0,
-    maxItems: 100
-  };
-
   const STORAGE = {
     draft: "cotizador_draft_v1",
     history: "cotizador_history_v1",
@@ -604,8 +573,31 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     last_quote: "cotizador_last_quote_v1"
   };
 
+  const $ = (id)=>document.getElementById(id);
+
   function safeParse(jsonStr, fallback){
     try{ return JSON.parse(jsonStr); }catch(e){ return fallback; }
+  }
+
+  function nowISODate(){
+    const d = new Date();
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off*60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  function fmt(n){
+    const v = Number(n || 0);
+    return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  function clamp(n, min, max){
+    n = Number(n||0);
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
   }
 
   let items = [];
@@ -614,8 +606,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
   if(!Array.isArray(history)) history = [];
   if(!(lastQuote && typeof lastQuote === "object" && !Array.isArray(lastQuote))) lastQuote = null;
 
-  const $ = (id)=>document.getElementById(id);
-  $("brandTitle").textContent = CONFIG.brandName;
+  // Init base
+  $("brandTitle").textContent = "Cotizador Pro";
   if(!$("date").value) $("date").value = nowISODate();
 
   const savedTheme = localStorage.getItem(STORAGE.theme);
@@ -647,28 +639,12 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     localStorage.setItem(STORAGE.theme, isDark ? "dark" : "light");
   });
 
-  function nowISODate(){
-    const d = new Date();
-    const off = d.getTimezoneOffset();
-    const local = new Date(d.getTime() - off*60000);
-    return local.toISOString().slice(0,10);
-  }
-
-  function fmt(n){
-    const v = Number(n || 0);
-    return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
-  }
-  function clamp(n, min, max){
-    n = Number(n||0);
-    return Math.max(min, Math.min(max, n));
-  }
-
   function saveDraft(){
     const draft = {
       client: $("client").value.trim(),
       date: $("date").value,
-      brand: $("brand").value,        // ✅ select
-      itemType: $("itemType").value,  // ✅ select
+      brand: $("brand").value,
+      itemType: $("itemType").value,
       shipping: $("shipping").value,
       initial: $("initial").value,
       bcv: $("bcv").value,
@@ -693,29 +669,39 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     }catch(e){}
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  // ✅ Deshabilitar / habilitar botón Agregar si no hay tienda
+  function updateAddBtn(){
+    const ok = !!$("brand").value;
+    $("addItemBtn").disabled = !ok;
   }
 
+  // ✅ Agregar item (sin campo Artículo) + tienda obligatoria
   function addItem(){
-    const type = $("itemType").value;
-    const name = $("itemName").value.trim();
+    const store = $("brand").value;
+    const type = $("itemType").value || "Otros";
     const qty = Number($("itemQty").value || 0);
     const price = Number($("itemPrice").value || 0);
     const tax = Number($("itemTax").value || 0);
 
-    if(!name){
-      alert("Escribe el nombre del artículo.");
+    if(!store){
+      alert("Selecciona una Tienda antes de agregar artículos.");
+      $("brand").focus();
       return;
     }
+
     if(price < 0 || tax < 0 || qty < 0){
       alert("Valores inválidos.");
       return;
     }
 
-    items.push({ type, name, qty, price, tax });
+    const count = items.filter(x =>
+      (x.store || "") === store && (x.type || "") === type
+    ).length + 1;
 
-    $("itemName").value = "";
+    const name = `${store} — ${type} #${count}`;
+
+    items.push({ store, type, name, qty, price, tax });
+
     $("itemQty").value = "";
     $("itemPrice").value = "";
     $("itemTax").value = "";
@@ -741,7 +727,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       const div = document.createElement("div");
       div.className = "chip";
       const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
-      div.innerHTML = `<b>${escapeHtml(it.type || "Otros")} — ${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)}
+      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)}
         <span class="x" title="Eliminar">✕</span>`;
       div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
       wrap.appendChild(div);
@@ -754,6 +740,13 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
       return;
     }
 
+    const store = $("brand").value;
+    if(!store){
+      alert("Selecciona una Tienda antes de calcular.");
+      $("brand").focus();
+      return;
+    }
+
     const shippingPct = clamp($("shipping").value, 0, 100);
     const initialUSD = clamp($("initial").value, 0, 999999999);
     const bcv = Number($("bcv").value || 0);
@@ -761,7 +754,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const itemsCalc = items.map(it=>{
       const subtotal = Number(it.price || 0);
       const tax = Number(it.tax || 0);
-      const total = subtotal + tax; // ✅ NO multiplicamos por cantidad
+      const total = subtotal + tax; // ✅ no multiplicar por cantidad
       return { ...it, subtotal, tax, total };
     });
 
@@ -781,7 +774,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const quote = {
       client: $("client").value.trim(),
       date: $("date").value,
-      brand: $("brand").value,
+      brand: store,
       shippingPct,
       initialUSD,
       bcv,
@@ -807,7 +800,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     const lines = q.items.map(it=>`
       <tr>
         <td>
-          <b>${escapeHtml(it.type || "Otros")} — ${escapeHtml(it.name)}</b>
+          <b>${escapeHtml(it.name)}</b>
           <div class="small">${it.qty ? "Cant: " + it.qty : ""}</div>
         </td>
         <td>$${fmt(it.subtotal)}</td>
@@ -917,6 +910,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
     renderResults(q);
     saveDraft();
+    updateAddBtn();
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
@@ -937,7 +931,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
   function quoteToMessage(q){
     const lines = q.items.map(it=>{
       const qty = it.qty ? ` (Cant: ${it.qty})` : "";
-      return `• ${it.type || "Otros"} — ${it.name}${qty}: $${fmt(it.total)} (Precio $${fmt(it.subtotal)} + Imp $${fmt(it.tax)})`;
+      return `• ${it.name}${qty}: $${fmt(it.total)} (Precio $${fmt(it.subtotal)} + Imp $${fmt(it.tax)})`;
     }).join("\n");
 
     const msg = [
@@ -998,7 +992,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     doc.setFont("helvetica", "normal");
     q.items.forEach(it=>{
       const qty = it.qty ? ` (Cant: ${it.qty})` : "";
-      const line = `- ${it.type || "Otros"} — ${it.name}${qty}: $${fmt(it.total)} (P $${fmt(it.subtotal)} + I $${fmt(it.tax)})`;
+      const line = `- ${it.name}${qty}: $${fmt(it.total)} (P $${fmt(it.subtotal)} + I $${fmt(it.tax)})`;
       doc.text(line, 14, y);
       y += 6;
       if(y > 270){ doc.addPage(); y = 20; }
@@ -1062,7 +1056,6 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     $("initial").value = "";
     $("bcv").value = "";
 
-    $("itemName").value = "";
     $("itemQty").value = "";
     $("itemPrice").value = "";
     $("itemTax").value = "";
@@ -1070,6 +1063,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     $("results").innerHTML = `<div class="muted">Sin cotización todavía.</div>`;
     renderItemsChips();
     saveDraft();
+    updateAddBtn();
   }
 
   function setClientMode(enabled){
@@ -1085,6 +1079,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     localStorage.setItem(STORAGE.mode, enabled ? "client" : "admin");
   }
 
+  // Events
   $("privateToggleBtn").addEventListener("click", togglePrivateSection);
 
   $("addItemBtn").addEventListener("click", addItem);
@@ -1102,12 +1097,15 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     if(enabled && lastQuote) renderResults(lastQuote);
   });
 
-  // ✅ autosave (inputs + selects)
+  // autosave (inputs + selects)
   ["client","date","shipping","initial","bcv"].forEach(id=>{
     $(id).addEventListener("input", saveDraft);
   });
   ["brand","itemType"].forEach(id=>{
-    $(id).addEventListener("change", saveDraft);
+    $(id).addEventListener("change", ()=>{
+      saveDraft();
+      updateAddBtn();
+    });
   });
 
   // mini calc 1
@@ -1140,9 +1138,11 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
   $("rateBtn").addEventListener("click", ()=>updateRate({force:true}));
 
+  // Run init
   loadDraft();
   renderHistory();
   renderItemsChips();
+  updateAddBtn();
 
   const savedMode = localStorage.getItem(STORAGE.mode);
   if(savedMode === "client"){
