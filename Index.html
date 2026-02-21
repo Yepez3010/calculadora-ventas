@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador Profesional Móvil</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --primary:#007BFF; --secondary:#6c757d; --background:#f4f4f4;
+  --card-bg:#fff; --text-color:#333; --input-bg:#fff; --input-text:#333;
+  --calc-bg:#e2e8f0; --result-bg:#f1f5f9; --result-text:#333;
+}
+body {
+  font-family:'Roboto',sans-serif;
+  background:linear-gradient(135deg,#f0f2f5,#c9d6ff);
+  color:var(--text-color); padding:20px; transition:all 0.4s ease;
+}
+.dark-mode { 
+  --background:#121212; --card-bg:#1e1e1e; --text-color:#eee;
+  --input-bg:#2b2b2b; --input-text:#fff; --calc-bg:#2a2a2a;
+  --result-bg:#1e1e1e; --result-text:#eee;
+  background:linear-gradient(135deg,#121212,#1a1a1a);
+}
+.calculator {
+  background:linear-gradient(145deg,#ffffff,#e6f0ff); padding:20px;
+  border-radius:15px; box-shadow:0 15px 35px rgba(0,0,0,0.25); width:100%; max-width:500px;
+  transition:all 0.4s ease;
+}
+.dark-mode .calculator { background:linear-gradient(145deg,#1e1e1e,#2a2a2a); }
+h2 { text-align:center; color:var(--primary); }
+label { display:block; margin-top:10px; color:var(--text-color); }
+input[type=text],input[type=number],input[type=date]{
+  width:100%; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ccc;
+  background:var(--input-bg); color:var(--input-text); box-sizing:border-box;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); transition:all 0.3s ease;
+}
+input:focus{ box-shadow:0 0 10px rgba(0,123,255,0.4); }
+button {
+  margin-top:15px; width:100%; padding:12px; background:linear-gradient(135deg,#007BFF,#0056b3);
+  border:none; color:#fff; font-size:16px; border-radius:8px; cursor:pointer;
+  box-shadow:0 5px 15px rgba(0,0,0,0.2); transition:all 0.3s ease;
+}
+button:hover{ transform:translateY(-2px); box-shadow:0 7px 20px rgba(0,0,0,0.25); }
+.dark-mode button{ background:linear-gradient(135deg,#1a73e8,#1354b0); box-shadow:0 5px 15px rgba(0,0,0,0.5); }
+.dark-mode button:hover{ transform:translateY(-2px); box-shadow:0 7px 20px rgba(0,0,0,0.6); }
+.results {
+  margin-top:20px; background:var(--result-bg); color:var(--result-text);
+  padding:15px; border-radius:10px; max-height:400px; overflow-y:auto;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1); transition:all 0.3s ease;
+}
+.results h3{ margin-top:0; color:var(--primary);}
+.results ul{ padding-left:20px;}
+.private-settings{
+  margin-top:20px; padding:15px; background:var(--calc-bg);
+  border-radius:12px; display:none; transition:all 0.3s ease;
+}
+.private-settings .input-group{ position:relative; margin-top:15px; }
+.private-settings .input-group input{
+  width:100%; padding:12px 10px; border-radius:8px; border:1px solid #ccc;
+  background:var(--input-bg); color:var(--input-text); font-size:14px; transition:all 0.3s ease;
+}
+.private-settings .input-group label{
+  position:absolute; top:50%; left:12px; color:#888; pointer-events:none;
+  transform:translateY(-50%); transition:all 0.3s ease; font-size:14px;
+}
+.private-settings .input-group input:focus + label,
+.private-settings .input-group input:not(:placeholder-shown) + label{
+  top:-8px; left:10px; font-size:12px; color:var(--primary); background:var(--calc-bg); padding:0 4px;
+}
+.private-settings button{
+  width:32%; margin-top:10px; margin-right:2%; padding:10px; border-radius:8px;
+  border:none; font-weight:600; font-size:14px; cursor:pointer;
+  background:linear-gradient(135deg,#007BFF,#0056b3); color:#fff; box-shadow:0 4px 8px rgba(0,0,0,0.2);
+}
+.private-settings button:hover{ background:linear-gradient(135deg,#0056b3,#003f7f); transform:translateY(-2px); box-shadow:0 6px 12px rgba(0,0,0,0.3);}
+.dark-mode .private-settings button{ background:linear-gradient(135deg,#1a73e8,#1354b0); box-shadow:0 4px 8px rgba(0,0,0,0.5);}
+.dark-mode .private-settings button:hover{ background:linear-gradient(135deg,#1354b0,#0d386d); transform:translateY(-2px); box-shadow:0 6px 12px rgba(0,0,0,0.6);}
+.toggle-theme{
+  position:absolute; top:20px; right:20px; padding:10px; border-radius:50%; border:none; font-size:20px; cursor:pointer; background:var(--secondary); color:#fff;
+}
+.toggle-theme:hover{ background:var(--primary);}
+.private-settings div[style*="flex:1"]{
+  background:linear-gradient(145deg,#ffffff,#f0f4ff); box-shadow:0 8px 20px rgba(0,0,0,0.2); transition:all 0.3s ease;
+}
+.dark-mode .private-settings div[style*="flex:1"]{
+  background:linear-gradient(145deg,#2a2a2a,#1e1e1e); box-shadow:0 8px 20px rgba(0,0,0,0.5);
+}
+/* Responsive */
+@media (max-width:600px){
+  .calculator{ width:90%; padding:15px; }
+  .private-settings{ padding:10px; }
+  .private-settings div[style*="display:flex"]{ flex-direction:column; }
+  .private-settings div[style*="flex:1"]{ width:100%; margin-bottom:15px; }
+  .private-settings button{ width:48%; margin-right:4%; margin-top:10px; }
+  .private-settings button:last-child{ width:100%; margin-right:0; }
+  input, button{ font-size:14px; padding:10px; }
+}
+</style>
+</head>
+<body>
+<button class="toggle-theme" id="themeToggle">🌙</button>
+<div class="calculator">
+<h2>Cotizador Profesional</h2>
+<label>Nombre del Cliente:<input type="text" id="clientName" placeholder="Ej: Juan Pérez"></label>
+<label>Fecha:<input type="date" id="date"></label>
+<label>Nombre de Marca:<input type="text" id="brandName" placeholder="Ej: Nike"></label>
+<hr>
+<label>Nombre Producto/Servicio:<input type="text" id="itemName" placeholder="Ej: Diseño web"></label>
+<label>Cantidad (informativa):<input type="number" id="itemQuantity" placeholder="Ej: 2"></label>
+<label>Precio unitario ($):<input type="number" id="itemPrice" placeholder="Ej: 150"></label>
+<label>Impuesto (%) (opcional):<input type="number" id="tax" placeholder="Ej:16"></label>
+<button onclick="addItem()">Agregar Item</button>
+<hr>
+<label>Envío internacional (% del total artículos):<input type="number" id="shippingPercent" placeholder="Ej:10"></label>
+<label>Inicial (%) (anticipo):<input type="number" id="initialPercent" placeholder="Ej:30"></label>
+<label>Tasa BCV del día (Bs/USD):<input type="number" id="bcvRate" placeholder="Ej:450000"></label>
+<button onclick="calculateTotal()">Calcular Total</button>
+<button onclick="exportInvoicePDF()">Exportar PDF</button>
+<div class="results" id="results"><p>No hay cotización aún.</p></div>
+<button onclick="togglePrivateSettings()">Ajustes Privados</button>
+<div class="private-settings" id="privateSettings">
+<h3>Mini Calculadoras</h3>
+<div style="display:flex; gap:10px;">
+<div style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;">
+<h4>Calculadora USD</h4>
+<div class="input-group"><input type="number" id="num1" placeholder=" "/><label for="num1">Número 1</label></div>
+<div class="input-group"><input type="number" id="num2" placeholder=" "/><label for="num2">Número 2</label></div>
+<button onclick="calculate('+')">➕ Sumar</button>
+<button onclick="calculate('-')">➖ Restar</button>
+<button onclick="calculate('*')">✖️ Multiplicar</button>
+<button onclick="clearUSD()">🧹 Limpiar</button>
+<p id="privateResult"><strong>Resultado:</strong> -</p>
+</div>
+<div style="flex:1; padding:10px; border-radius:8px; border:1px solid #ccc;">
+<h4>Calculadora Bs → USD</h4>
+<div class="input-group"><input type="number" id="numBs1" placeholder=" "/><label for="numBs1">Monto Bs 1</label></div>
+<div class="input-group"><input type="number" id="numBs2" placeholder=" "/><label for="numBs2">Monto Bs 2</label></div>
+<button onclick="calculateBs('+')">➕ Sumar</button>
+<button onclick="calculateBs('-')">➖ Restar</button>
+<button onclick="calculateBs('*')">✖️ Multiplicar</button>
+<button onclick="clearBs()">🧹 Limpiar</button>
+<p id="privateResultBs"><strong>Resultado:</strong> -</p>
+</div>
+</div>
+</div>
+</div>
+<script>
+const items=[]; function addItem(){const name=document.getElementById('itemName').value.trim();const quantity=document.getElementById('itemQuantity').value.trim();const price=parseFloat(document.getElementById('itemPrice').value);const taxPercent=parseFloat(document.getElementById('tax').value)||0;if(!name||isNaN(price)){alert("Completa el item correctamente");return;}const tax=price*(taxPercent/100);const total=price+tax;items.push({name,quantity,price,tax,total});updateItemsList();document.getElementById('itemName').value='';document.getElementById('itemQuantity').value='';document.getElementById('itemPrice').value='';document.getElementById('tax').value='';}
+function updateItemsList(){const resultsDiv=document.getElementById('results');if(items.length===0){resultsDiv.innerHTML='<p>No hay items agregados.</p>';return;}let html='<h3>Items agregados:</h3><ul>';items.forEach(it=>{html+=`<li>${it.quantity||'-'} x ${it.name} @ $${it.price.toFixed(2)} (Imp: $${it.tax.toFixed(2)}) → $${it.total.toFixed(2)}</li>`;});html+='</ul>';resultsDiv.innerHTML=html;}
+function calculateTotal(){const client=document.getElementById('clientName').value.trim();const date=document.getElementById('date').value;const brand=document.getElementById('brandName').value.trim();const shippingPercent=parseFloat(document.getElementById('shippingPercent').value)||0;const initialPercent=parseFloat(document.getElementById('initialPercent').value)||0;const bcvRate=parseFloat(document.getElementById('bcvRate').value)||1;if(!client||!date||!brand||items.length===0){alert("Completa datos y agrega items");return;}const totalItems=items.reduce((sum,it)=>sum+it.total,0);const shipping=totalItems*(shippingPercent/100);const totalWithShipping=totalItems+shipping;const initialAmount=totalWithShipping*(initialPercent/100);const remaining=totalWithShipping-initialAmount;const totalBs=totalWithShipping*bcvRate;const initialBs=initialAmount*bcvRate;const remainingBs=remaining*bcvRate;let html=`<h3>Cotización final</h3><p><strong>Cliente:</strong> ${client}</p><p><strong>Fecha:</strong> ${date}</p><p><strong>Marca:</strong> ${brand}</p><p><strong>Total artículos:</strong> $${totalItems.toFixed(2)}</p><p><strong>Envío (${shippingPercent.toFixed(2)}%):</strong> $${shipping.toFixed(2)}</p><p><strong>Total a pagar:</strong> $${totalWithShipping.toFixed(2)} / Bs ${totalBs.toFixed(2)}</p><p><strong>Inicial (${initialPercent}%):</strong> $${initialAmount.toFixed(2)} / Bs ${initialBs.toFixed(2)}</p><p><strong>Restante:</strong> $${remaining.toFixed(2)} / Bs ${remainingBs.toFixed(2)}</p><p><strong>Tasa BCV:</strong> Bs ${bcvRate.toFixed(2)}</p>`;document.getElementById('results').innerHTML=html;}
+function togglePrivateSettings(){const ps=document.getElementById('privateSettings');ps.style.display=ps.style.display==='none'?'block':'none';}
+function calculate(op){const n1=parseFloat(document.getElementById('num1').value)||0;const n2=parseFloat(document.getElementById('num2').value)||0;let res=0;if(op==='+')res=n1+n2;if(op==='-')res=n1-n2;if(op==='*')res=n1*n2;document.getElementById('privateResult').innerHTML=`<strong>Resultado:</strong> ${res.toFixed(2)} USD`;}
+function clearUSD(){document.getElementById('num1').value='';document.getElementById('num2').value='';document.getElementById('privateResult').innerHTML='<strong>Resultado:</strong> -';}
+function calculateBs(op){const n1=parseFloat(document.getElementById('numBs1').value)||0;const n2=parseFloat(document.getElementById('numBs2').value)||0;const bcv=parseFloat(document.getElementById('bcvRate').value)||1;let res=0;if(op==='+')res=n1+n2;if(op==='-')res=n1-n2;if(op==='*')res=n1*n2;document.getElementById('privateResultBs').innerHTML=`<strong>Resultado:</strong> ${res.toFixed(2)} Bs → ${(res/bcv).toFixed(2)} USD`;}
+function clearBs(){document.getElementById('numBs1').value='';document.getElementById('numBs2').value='';document.getElementById('privateResultBs').innerHTML='<strong>Resultado:</strong> -';}
+function exportInvoicePDF(){const {jsPDF}=window.jspdf;const doc=new jsPDF();doc.text("COTIZACIÓN PROFESIONAL",105,15,null,null,'center');doc.text(document.getElementById('results').innerText,15,25);doc.save("cotizacion.pdf");}
+const themeBtn=document.getElementById('themeToggle');themeBtn.addEventListener('click',()=>{document.body.classList.toggle('dark-mode');themeBtn.textContent=document.body.classList.contains('dark-mode')?'☀️':'🌙';});
+</script>
+</body>
+</html>
