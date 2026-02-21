@@ -25,10 +25,8 @@
     --radius: 18px;
 
     --ease-out: cubic-bezier(.2,.8,.2,1);
-    --ease-inout: cubic-bezier(.4,0,.2,1);
     --t-fast: 140ms;
     --t-med: 260ms;
-    --t-slow: 420ms;
 
     --ring: 0 0 0 4px rgba(0,122,255,.16);
   }
@@ -53,13 +51,13 @@
 
   *{
     transition:
-      background-color var(--t-med) var(--ease-out),
-      color var(--t-med) var(--ease-out),
-      border-color var(--t-med) var(--ease-out),
-      box-shadow var(--t-med) var(--ease-out),
-      transform var(--t-fast) var(--ease-out),
-      opacity var(--t-med) var(--ease-out),
-      filter var(--t-fast) var(--ease-out);
+      background-color var(--t-med) cubic-bezier(.2,.8,.2,1),
+      color var(--t-med) cubic-bezier(.2,.8,.2,1),
+      border-color var(--t-med) cubic-bezier(.2,.8,.2,1),
+      box-shadow var(--t-med) cubic-bezier(.2,.8,.2,1),
+      transform var(--t-fast) cubic-bezier(.2,.8,.2,1),
+      opacity var(--t-med) cubic-bezier(.2,.8,.2,1),
+      filter var(--t-fast) cubic-bezier(.2,.8,.2,1);
   }
 
   .container{
@@ -106,22 +104,16 @@
     border-radius: var(--radius);
     box-shadow: 0 12px 30px rgba(0,0,0,.10);
     padding: 16px;
-    animation: floatIn .42s var(--ease-out) both;
+    animation: floatIn .42s cubic-bezier(.2,.8,.2,1) both;
   }
-  body.dark .card{
-    box-shadow: 0 14px 34px rgba(0,0,0,.45);
-  }
+  body.dark .card{ box-shadow: 0 14px 34px rgba(0,0,0,.45); }
 
   @keyframes floatIn{
     from{ opacity:0; transform: translateY(14px) scale(.995); filter: blur(2px); }
     to{ opacity:1; transform: translateY(0) scale(1); filter: blur(0); }
   }
 
-  h2{
-    margin: 10px 0 6px;
-    text-align:center;
-    font-size:18px;
-  }
+  h2{ margin: 10px 0 6px; text-align:center; font-size:18px; }
 
   .sub{
     text-align:center;
@@ -151,12 +143,12 @@
     border: 1px solid transparent;
   }
 
-  /* ✅ Fecha igual a los demás inputs (corrige “desorden” visual) */
+  /* ✅ Fecha igual a los demás inputs */
   input[type="date"]{
     -webkit-appearance: none;
     appearance: none;
-    width: 100%;
-    box-sizing: border-box;
+    width:100%;
+    box-sizing:border-box;
     border:none;
     background: var(--field);
     color: var(--text);
@@ -203,12 +195,10 @@
     background: color-mix(in srgb, var(--primary) 14%, var(--card));
     color: var(--primary);
   }
-
   .btn.danger{
     background: color-mix(in srgb, var(--danger) 14%, var(--card));
     color: var(--danger);
   }
-
   .btn.ghost{
     background: transparent;
     color: var(--primary);
@@ -246,7 +236,7 @@
     padding: 14px;
     font-size: 14px;
     line-height: 1.35;
-    animation: floatIn .32s var(--ease-out) both;
+    animation: floatIn .32s cubic-bezier(.2,.8,.2,1) both;
     border: 1px solid color-mix(in srgb, var(--field) 70%, transparent);
   }
 
@@ -301,7 +291,7 @@
     padding: 12px;
     border: 1px solid color-mix(in srgb, var(--field) 65%, transparent);
     box-shadow: none;
-    animation: floatIn .25s var(--ease-out) both;
+    animation: floatIn .25s cubic-bezier(.2,.8,.2,1) both;
   }
 
   .history-item .top{
@@ -333,10 +323,7 @@
     border: 1px solid color-mix(in srgb, var(--field) 65%, transparent);
   }
 
-  .calc-card h4{
-    margin: 0 0 10px;
-    font-size: 14px;
-  }
+  .calc-card h4{ margin: 0 0 10px; font-size: 14px; }
 
   .op-row{
     display:grid;
@@ -415,9 +402,6 @@
   }
   body.client .sub{ opacity:.65; }
   body.client .footerbar .wrap{ grid-template-columns: 1fr; }
-
-  .fade-enter{ opacity:0; transform: translateY(6px); }
-  .fade-enter.fade-enter-active{ opacity:1; transform: translateY(0); }
 
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; animation:none !important; }
@@ -648,6 +632,21 @@
     return fmtMoney.format(num);
   }
 
+  // ✅ Formato elegante con símbolo
+  function formatUSD(n){ return `$ ${money(n)}`; }
+  function formatBs(n){ return `Bs ${money(n)}`; }
+
+  function formatDateTimeVE(iso){
+    const d = iso ? new Date(iso) : new Date();
+    return d.toLocaleString("es-VE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
   const nowISODate = () => {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -702,21 +701,17 @@
       d.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
-
-  // si el usuario abre/cierra tocando el summary, igual actualiza el botón
   $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
 
   // =========================
-  // RATE AUTO (emprendimiento)
+  // RATE AUTO
   // =========================
   function setRateStatus(text){
     const el = $("rateStatus");
     if(el) el.textContent = text;
   }
 
-  function todayKey(){
-    return new Date().toDateString();
-  }
+  function todayKey(){ return new Date().toDateString(); }
 
   function saveRateMeta(rate, source){
     const meta = { rate: Number(rate), source: source || "unknown", updatedAt: new Date().toISOString() };
@@ -746,7 +741,7 @@
         const meta = loadRateMeta();
         if(meta?.rate){
           $("bcv").value = Number(meta.rate).toFixed(2); // input necesita punto
-          setRateStatus(`Tasa automática (cache): ${money(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+          setRateStatus(`Tasa automática (cache): ${formatBs(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
           saveDraft();
         }
         return;
@@ -758,14 +753,14 @@
 
       $("bcv").value = rate.toFixed(2); // input necesita punto
       saveRateMeta(rate, source);
-      setRateStatus(`Tasa automática: ${money(rate)} • Fuente: ${source} • ${new Date().toLocaleString()}`);
+      setRateStatus(`Tasa automática: ${formatBs(rate)} • ${new Date().toLocaleString()}`);
       saveDraft();
     }catch(err){
       console.warn("Error actualizando tasa:", err);
       const meta = loadRateMeta();
       if(meta?.rate){
         $("bcv").value = Number(meta.rate).toFixed(2);
-        setRateStatus(`No se pudo actualizar. Usando última guardada: ${money(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+        setRateStatus(`No se pudo actualizar. Usando última guardada: ${formatBs(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
         saveDraft();
         return;
       }
@@ -821,7 +816,7 @@
     items.forEach((it, idx) => {
       const chip = document.createElement("div");
       chip.className = "chip";
-      chip.textContent = `${it.qty || "-"}x ${it.name} → $${money(it.total)}`;
+      chip.textContent = `${it.qty || "-"}x ${it.name} → ${formatUSD(it.total)}`;
       chip.title = "Toca para eliminar";
       chip.style.cursor = "pointer";
       chip.addEventListener("click", () => {
@@ -866,24 +861,23 @@
     const itemsHTML = (q.items || [])
       .map(it => `<div class="muted" style="display:flex;justify-content:space-between;gap:10px;">
         <span>${it.qty || "-"}x ${it.name}</span>
-        <span>$${money(it.total)}</span>
+        <span>${formatUSD(it.total)}</span>
       </div>`)
       .join("");
 
     const bcvHTML = isClient ? "" : `
       <div style="margin-top:10px;" class="muted">
-        <div><strong>BCV:</strong> Bs ${money(q.bcv)}</div>
-        <div><strong>Fuente:</strong> ${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}</div>
-        <div style="margin-top:6px;"><strong>Total Bs:</strong> Bs ${money(q.totalBs)}</div>
-        <div><strong>Inicial Bs:</strong> Bs ${money(q.initialBs)}</div>
-        <div><strong>Restante Bs:</strong> Bs ${money(q.remainingBs)}</div>
+        <div><strong>BCV:</strong> ${formatBs(q.bcv)} / $1</div>
+        <div style="margin-top:6px;"><strong>Total Bs:</strong> ${formatBs(q.totalBs)}</div>
+        <div><strong>Inicial Bs:</strong> ${formatBs(q.initialBs)}</div>
+        <div><strong>Restante Bs:</strong> ${formatBs(q.remainingBs)}</div>
       </div>
     `;
 
     $("results").innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:10px;font-weight:900;font-size:16px;">
         <div>Total</div>
-        <div>$${money(q.totalUSD)}</div>
+        <div>${formatUSD(q.totalUSD)}</div>
       </div>
 
       <div class="muted" style="margin-top:10px;">
@@ -898,10 +892,10 @@
       </div>
 
       <div style="margin-top:12px;">
-        <div><strong>Artículos:</strong> $${money(q.totalItemsUSD)}</div>
-        <div><strong>Envío (${money(q.shippingPct)}%):</strong> $${money(q.shippingUSD)}</div>
-        <div style="margin-top:6px;"><strong>Inicial (${money(q.initialPct)}%):</strong> $${money(q.initialUSD)}</div>
-        <div><strong>Restante:</strong> $${money(q.remainingUSD)}</div>
+        <div><strong>Artículos:</strong> ${formatUSD(q.totalItemsUSD)}</div>
+        <div><strong>Envío (${money(q.shippingPct)}%):</strong> ${formatUSD(q.shippingUSD)}</div>
+        <div style="margin-top:6px;"><strong>Inicial (${money(q.initialPct)}%):</strong> ${formatUSD(q.initialUSD)}</div>
+        <div><strong>Restante:</strong> ${formatUSD(q.remainingUSD)}</div>
       </div>
 
       ${bcvHTML}
@@ -915,10 +909,6 @@
     const shippingPct = parseFloat($("shipping").value) || 0;
     const initialPct = parseFloat($("initial").value) || 0;
     const bcv = parseFloat($("bcv").value) || 1;
-
-    const rateMeta = loadRateMeta();
-    const bcvSource = rateMeta?.source || "manual";
-    const bcvUpdatedAt = rateMeta?.updatedAt || null;
 
     if(!client || !brand){ alert("Completa Cliente y Tienda."); return; }
     if(items.length === 0){ alert("Agrega al menos 1 ítem."); return; }
@@ -940,7 +930,6 @@
       client, date, brand,
       items: [...items],
       shippingPct, initialPct, bcv,
-      bcvSource, bcvUpdatedAt,
       totalItemsUSD, shippingUSD, totalUSD,
       initialUSD, remainingUSD,
       totalBs, initialBs, remainingBs
@@ -975,7 +964,7 @@
       el.innerHTML = `
         <div class="top">
           <div>${q.client}</div>
-          <div>$${money(q.totalUSD)}</div>
+          <div>${formatUSD(q.totalUSD)}</div>
         </div>
         <div class="meta">
           <span>📅 ${q.date}</span>
@@ -1026,7 +1015,7 @@
   }
 
   // =========================
-  // WHATSAPP
+  // WHATSAPP (✅ sin API / sin dominio + incluye Inicial Bs)
   // =========================
   function quoteToMessage(q){
     const lines = [];
@@ -1034,22 +1023,29 @@
     lines.push(`Cotización`);
     lines.push(`Cliente: ${q.client}`);
     lines.push(`Fecha: ${q.date}`);
+    lines.push(`Emitida: ${formatDateTimeVE(q.createdAt)}`);
     lines.push(`Tienda: ${q.brand}`);
     lines.push(``);
-    lines.push(`Items:`);
-    q.items.forEach((it) => lines.push(`- ${it.qty || "-"}x ${it.name}: $${money(it.total)}`));
-    lines.push(``);
-    lines.push(`Artículos: $${money(q.totalItemsUSD)}`);
-    lines.push(`Envío (${money(q.shippingPct)}%): $${money(q.shippingUSD)}`);
-    lines.push(`Total: *$${money(q.totalUSD)}*`);
-    lines.push(`Inicial (${money(q.initialPct)}%): $${money(q.initialUSD)}`);
-    lines.push(`Restante: $${money(q.remainingUSD)}`);
 
-    const rateInfo = `${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}`;
-    lines.push(`BCV usada: Bs ${money(q.bcv)} (${rateInfo})`);
-    lines.push(`Total Bs: Bs ${money(q.totalBs)}`);
+    lines.push(`Items:`);
+    q.items.forEach((it) => lines.push(`- ${it.qty || "-"}x ${it.name}: ${formatUSD(it.total)}`));
+
+    lines.push(``);
+    lines.push(`Artículos: ${formatUSD(q.totalItemsUSD)}`);
+    lines.push(`Envío (${money(q.shippingPct)}%): ${formatUSD(q.shippingUSD)}`);
+    lines.push(`Total: *${formatUSD(q.totalUSD)}*`);
+    lines.push(`Inicial (${money(q.initialPct)}%): ${formatUSD(q.initialUSD)}`);
+    lines.push(`Restante: ${formatUSD(q.remainingUSD)}`);
+
+    lines.push(``);
+    lines.push(`BCV usada: ${formatBs(q.bcv)} por $1`);
+    lines.push(`Total Bs: ${formatBs(q.totalBs)}`);
+    lines.push(`Inicial Bs: ${formatBs(q.initialBs)}`);
+    lines.push(`Restante Bs: ${formatBs(q.remainingBs)}`);
+
     lines.push(``);
     lines.push(`📝 Nota: La tasa aplicada corresponde al momento de emisión de esta cotización y puede variar según el día.`);
+
     return lines.join("\n");
   }
 
@@ -1080,33 +1076,32 @@
     doc.setFontSize(10);
     doc.text(`Cliente: ${q.client}`, 14, y); y += 6;
     doc.text(`Fecha: ${q.date}`, 14, y); y += 6;
+    doc.text(`Emitida: ${formatDateTimeVE(q.createdAt)}`, 14, y); y += 6;
     doc.text(`Tienda: ${q.brand}`, 14, y); y += 8;
 
     doc.setFont("helvetica", "bold");
     doc.text("Items:", 14, y); y += 6;
     doc.setFont("helvetica", "normal");
 
-    const itemLines = q.items.map(it => `• ${it.qty || "-"}x ${it.name}  |  $${money(it.total)}`);
+    const itemLines = q.items.map(it => `• ${it.qty || "-"}x ${it.name}  |  ${formatUSD(it.total)}`);
     const wrapped = doc.splitTextToSize(itemLines.join("\n"), 180);
     doc.text(wrapped, 14, y);
     y += wrapped.length * 5 + 6;
 
     doc.setFont("helvetica", "bold");
-    doc.text(`Artículos: $${money(q.totalItemsUSD)}`, 14, y); y += 6;
-    doc.text(`Envío (${money(q.shippingPct)}%): $${money(q.shippingUSD)}`, 14, y); y += 6;
-    doc.text(`TOTAL: $${money(q.totalUSD)}`, 14, y); y += 7;
+    doc.text(`Artículos: ${formatUSD(q.totalItemsUSD)}`, 14, y); y += 6;
+    doc.text(`Envío (${money(q.shippingPct)}%): ${formatUSD(q.shippingUSD)}`, 14, y); y += 6;
+    doc.text(`TOTAL: ${formatUSD(q.totalUSD)}`, 14, y); y += 7;
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Inicial (${money(q.initialPct)}%): $${money(q.initialUSD)}`, 14, y); y += 6;
-    doc.text(`Restante: $${money(q.remainingUSD)}`, 14, y); y += 7;
+    doc.text(`Inicial (${money(q.initialPct)}%): ${formatUSD(q.initialUSD)}`, 14, y); y += 6;
+    doc.text(`Restante: ${formatUSD(q.remainingUSD)}`, 14, y); y += 7;
 
-    const rateInfo = `${q.bcvSource || "manual"}${q.bcvUpdatedAt ? ` • ${new Date(q.bcvUpdatedAt).toLocaleString()}` : ""}`;
-    const rateLine = `BCV usada: Bs ${money(q.bcv)} (${rateInfo})`;
-    doc.text(doc.splitTextToSize(rateLine, 180), 14, y); y += 10;
+    doc.text(`BCV usada: ${formatBs(q.bcv)} por $1`, 14, y); y += 6;
+    doc.text(`Total Bs: ${formatBs(q.totalBs)}`, 14, y); y += 6;
+    doc.text(`Inicial Bs: ${formatBs(q.initialBs)}`, 14, y); y += 6;
+    doc.text(`Restante Bs: ${formatBs(q.remainingBs)}`, 14, y); y += 8;
 
-    doc.text(`Total Bs: Bs ${money(q.totalBs)}`, 14, y); y += 8;
-
-    doc.setFont("helvetica","normal");
     doc.setFontSize(9);
     const note = "Nota: La tasa aplicada corresponde al momento de emisión de esta cotización y puede variar según el día.";
     doc.text(doc.splitTextToSize(note, 180), 14, y);
@@ -1131,7 +1126,7 @@
 
     let y = 28;
     history.slice(0, 40).forEach((q, i) => {
-      const line = `${i+1}. ${q.date} | ${q.client} | ${q.brand} | $${money(q.totalUSD)}`;
+      const line = `${i+1}. ${q.date} | ${q.client} | ${q.brand} | ${formatUSD(q.totalUSD)}`;
       doc.text(doc.splitTextToSize(line, 180), 14, y);
       y += 6;
       if(y > 280){ doc.addPage(); y = 20; }
@@ -1154,7 +1149,7 @@
     const a = parseFloat($("usd1").value) || 0;
     const b = parseFloat($("usd2").value) || 0;
     const r = calcOp(a,b,op);
-    $("usdRes").innerHTML = `<div><strong>Resultado:</strong> ${money(r)} USD</div>`;
+    $("usdRes").innerHTML = `<div><strong>Resultado:</strong> ${formatUSD(r)}</div>`;
   }
 
   function calcBS(op){
@@ -1163,8 +1158,8 @@
     const r = calcOp(a,b,op);
     const bcv = parseFloat($("bcv").value) || 1;
     $("bsRes").innerHTML = `
-      <div><strong>Resultado:</strong> ${money(r)} Bs</div>
-      <div class="muted">→ ${money(r / bcv)} USD (BCV: ${money(bcv)})</div>
+      <div><strong>Resultado:</strong> ${formatBs(r)}</div>
+      <div class="muted">→ ${formatUSD(r / bcv)} (BCV: ${formatBs(bcv)} / $1)</div>
     `;
   }
 
@@ -1270,31 +1265,6 @@
 
   $("usdCopyBtn").addEventListener("click", () => copyText($("usdRes").innerText.trim()));
   $("bsCopyBtn").addEventListener("click", () => copyText($("bsRes").innerText.trim()));
-
-  (function premiumMotion(){
-    const mainCard = document.querySelector(".card");
-    if(mainCard){
-      mainCard.classList.add("fade-enter");
-      requestAnimationFrame(() => mainCard.classList.add("fade-enter-active"));
-    }
-    const tapSelectors = [".btn", ".op-btn", ".chip"];
-    document.addEventListener("pointerdown", (e) => {
-      const el = e.target.closest(tapSelectors.join(","));
-      if(!el) return;
-      el.style.filter = "brightness(.98)";
-    });
-    document.addEventListener("pointerup", (e) => {
-      const el = e.target.closest(tapSelectors.join(","));
-      if(!el) return;
-      el.style.filter = "";
-    });
-    document.addEventListener("pointercancel", (e) => {
-      const el = e.target.closest(tapSelectors.join(","));
-      if(!el) return;
-      el.style.filter = "";
-    });
-    document.documentElement.style.scrollBehavior = "smooth";
-  })();
 
   // =========================
   // START
