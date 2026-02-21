@@ -51,7 +51,7 @@ header{
 }
 .brand h1{margin:0;font-size:18px;letter-spacing:.2px;}
 .brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.header-actions{display:flex;gap:10px;align-items:center;}
+.header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 .icon-btn{
   border:1px solid var(--line);
   background:color-mix(in srgb, var(--card) 88%, transparent);
@@ -185,10 +185,109 @@ details.private summary::-webkit-details-marker{display:none}
 body.client .admin-only{display:none!important;}
 body.client .grid{grid-template-columns:1fr;}
 body.client .card{max-width:980px;margin:0 auto;}
+
+/* ===========================
+   LOGIN OVERLAY (ELEGANTE)
+   =========================== */
+#loginOverlay{
+  position:fixed; inset:0; z-index:9999;
+  display:none;
+  place-items:center;
+  padding:18px;
+  background: radial-gradient(1000px 600px at 10% -10%, rgba(0,122,255,.25), transparent 55%),
+              radial-gradient(900px 500px at 110% 10%, rgba(34,197,94,.18), transparent 55%),
+              rgba(2,6,23,.55);
+  backdrop-filter: blur(10px);
+}
+#loginOverlay.show{ display:grid; }
+
+.login-card{
+  width:min(520px, 100%);
+  border-radius:22px;
+  border:1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+  box-shadow: 0 30px 90px rgba(0,0,0,.35);
+  overflow:hidden;
+}
+.login-head{
+  padding:16px 16px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border-bottom:1px solid var(--line);
+}
+.login-title{
+  display:flex; align-items:center; gap:10px;
+}
+.login-title .badge2{
+  width:44px; height:44px; border-radius:16px;
+  display:grid; place-items:center;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:#fff; font-weight:900;
+  box-shadow:0 10px 30px rgba(0,122,255,.35);
+}
+.login-title h3{margin:0; font-size:15px;}
+.login-title .p{margin:2px 0 0; font-size:12px; color:var(--muted);}
+.login-body{ padding:14px 16px 16px; }
+.login-actions{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.login-hint{
+  margin-top:10px;
+  font-size:12px; color:var(--muted);
+  border-top:1px dashed var(--line);
+  padding-top:10px;
+}
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line);
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:800;
+  background:color-mix(in srgb, var(--card) 92%, transparent);
+}
 </style>
 </head>
 
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" aria-hidden="true">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="login-title">
+        <div class="badge2">CP</div>
+        <div>
+          <h3>Acceso • Cotizador Pro</h3>
+          <div class="p">Inicia sesión para usar tu espacio de trabajo</div>
+        </div>
+      </div>
+      <span class="pill" id="loginStatus">🔒 Protegido</span>
+    </div>
+
+    <div class="login-body">
+      <div class="row">
+        <div class="field">
+          <label>Usuario</label>
+          <select id="loginUser" class="input">
+            <option value="admin">admin</option>
+            <option value="usuario">usuario</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input class="input" id="loginPass" type="password" placeholder="Tu contraseña" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <div class="login-actions">
+        <button class="btn btn-primary" id="loginBtn">🔑 Entrar</button>
+        <button class="btn btn-muted" id="loginClearBtn" type="button">🧹 Limpiar</button>
+      </div>
+
+      <div class="login-hint">
+        <div><b>Tip:</b> Cada usuario tiene su <b>historial y borrador</b> separados (no se pisan).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="brand">
@@ -199,6 +298,8 @@ body.client .card{max-width:980px;margin:0 auto;}
       </div>
     </div>
     <div class="header-actions">
+      <span class="badge" id="activeUserBadge" title="Usuario activo">—</span>
+      <button class="icon-btn" id="logoutBtn" title="Cerrar sesión"><span class="icon">🚪</span> Salir</button>
       <button class="icon-btn" id="clientModeBtn" title="Alternar Modo Cliente"><span class="icon">👤</span> Modo Cliente</button>
       <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro"><span class="icon">🌙</span></button>
     </div>
@@ -326,7 +427,6 @@ body.client .card{max-width:980px;margin:0 auto;}
                 <div class="mini-out" id="m1out">0.00</div>
               </div>
 
-              <!-- ✅ NUEVA Mini 2 -->
               <div class="mini">
                 <h3>Mini Calculadora 2 (Bs → $ según BCV)</h3>
                 <div class="mini-row">
@@ -423,473 +523,547 @@ body.client .card{max-width:980px;margin:0 auto;}
 
 <script>
 (function(){
-  const STORAGE = {
-    draft:"cotizador_draft_v1",
-    history:"cotizador_history_v1",
-    theme:"cotizador_theme_v1",
-    mode:"cotizador_mode_v1",
-    rate:"cotizador_rate_v1",
-    rate_last_day:"cotizador_rate_day_v1",
-    last_quote:"cotizador_last_quote_v1",
-    payments:"cotizador_payments_v1",
-    terms:"cotizador_terms_v1"
-  };
 
-  const DEFAULT_INITIAL_PCT = 30;
-  const DEFAULT_TERMS_LINES = [
-    "Para realizar tu encargo es obligatorio pagar la inicial.",
-    "La tasa y los montos en Bs pueden variar según la tasa BCV del momento."
-  ].join("\n");
+  /* ===========================
+     AUTH (LOCAL) + MULTI-USUARIO
+     =========================== */
+  const AUTH = {
+    Gustavo:  "0579",
+    Alexandra:"2015"
+  };
+  const ACTIVE_USER_KEY = "cotizador_active_user_v1";
 
   const $ = (id)=>document.getElementById(id);
 
-  function safeParse(jsonStr, fallback){ try{ return JSON.parse(jsonStr); }catch(e){ return fallback; } }
-  function nowISODate(){
-    const d=new Date(); const off=d.getTimezoneOffset();
-    const local=new Date(d.getTime()-off*60000);
-    return local.toISOString().slice(0,10);
+  function setActiveUser(u){
+    localStorage.setItem(ACTIVE_USER_KEY, u);
+    updateActiveUserBadge();
   }
-  function nowDateTimeVE(){
-    const d=new Date();
-    const fecha=d.toLocaleDateString("es-VE",{year:"numeric",month:"2-digit",day:"2-digit"});
-    const hora=d.toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
-    return `${fecha} ${hora}`;
+  function getActiveUser(){
+    const u = localStorage.getItem(ACTIVE_USER_KEY);
+    if(u && (u === "admin" || u === "usuario")) return u;
+    return null;
   }
-  function fmt(n){
-    const v=Number(n||0);
-    return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
-  }
-  function fmtPct(n){
-    const v=Number(n||0);
-    return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
-  }
-  function clamp(n,min,max){
-    n=Number(n||0);
-    return Math.max(min,Math.min(max,n));
-  }
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  }
-
-  // Estado
-  let items = [];
-  let lastQuote = safeParse(localStorage.getItem(STORAGE.last_quote) || "null", null);
-  let history = safeParse(localStorage.getItem(STORAGE.history) || "[]", []);
-  if(!Array.isArray(history)) history = [];
-  if(!(lastQuote && typeof lastQuote==="object" && !Array.isArray(lastQuote))) lastQuote = null;
-
-  // Pagos
-  const defaultPayments = {
-    bs:"Pago Móvil, Transferencia",
-    usd:"Efectivo, Zinli, Wally",
-    cop:"Bancolombia, Nequi, Nu",
-    usdt:"Binance Pay"
-  };
-  let payments = Object.assign({}, defaultPayments, safeParse(localStorage.getItem(STORAGE.payments) || "null", {}) || {});
-
-  // Términos
-  let termsText = (localStorage.getItem(STORAGE.terms) || DEFAULT_TERMS_LINES);
-
-  function applyPaymentsToUI(){
-    $("pay_bs").value = payments.bs || "";
-    $("pay_usd").value = payments.usd || "";
-    $("pay_cop").value = payments.cop || "";
-    $("pay_usdt").value = payments.usdt || "";
-  }
-  function readPaymentsFromUI(){
-    payments = {
-      bs: ($("pay_bs").value || "").trim(),
-      usd: ($("pay_usd").value || "").trim(),
-      cop: ($("pay_cop").value || "").trim(),
-      usdt: ($("pay_usdt").value || "").trim()
-    };
-    localStorage.setItem(STORAGE.payments, JSON.stringify(payments));
-  }
-  function applyTermsToUI(){
-    $("terms_text").value = termsText || "";
-  }
-  function readTermsFromUI(){
-    termsText = ($("terms_text").value || "").trim();
-    localStorage.setItem(STORAGE.terms, termsText);
-  }
-  function formatTermsForWA(text){
-    const lines = String(text || "").split("\n").map(l=>l.trim()).filter(Boolean);
-    if(lines.length === 0) return "• —";
-    return lines.map(l=>{
-      if(l.startsWith("•")) return l;
-      if(l.startsWith("-")) return "• " + l.slice(1).trim();
-      return "• " + l;
-    }).join("\n");
-  }
-
-  // UI init
-  $("brandTitle").textContent = "Cotizador Pro";
-  if(!$("date").value) $("date").value = nowISODate();
-
-  const savedTheme = localStorage.getItem(STORAGE.theme);
-  if(savedTheme === "dark"){ document.body.classList.add("dark"); $("themeToggle").textContent = "☀️"; }
-
-  function updatePrivateToggleText(){
-    const d=$("privateDetails"), btn=$("privateToggleBtn");
-    if(!d||!btn) return;
-    btn.textContent = d.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
-  }
-  function togglePrivateSection(){
-    const d=$("privateDetails"); if(!d) return;
-    d.open = !d.open; updatePrivateToggleText();
-  }
-  $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
-
-  $("themeToggle").addEventListener("click", ()=>{
-    document.body.classList.toggle("dark");
-    const isDark=document.body.classList.contains("dark");
-    $("themeToggle").textContent=isDark?"☀️":"🌙";
-    localStorage.setItem(STORAGE.theme, isDark?"dark":"light");
-  });
-
-  function ensureDefaultInitialPct(){
-    if($("initial").value === "" || $("initial").value == null){
-      $("initial").value = String(DEFAULT_INITIAL_PCT);
-    }
-  }
-
-  function saveDraft(){
-    const draft = {
-      client:$("client").value.trim(),
-      date:$("date").value,
-      brand:$("brand").value,
-      itemType:$("itemType").value,
-      shipping:$("shipping").value,
-      initial:$("initial").value, // %
-      bcv:$("bcv").value,
-      items:items
-    };
-    localStorage.setItem(STORAGE.draft, JSON.stringify(draft));
-  }
-
-  function loadDraft(){
-    const raw = localStorage.getItem(STORAGE.draft);
-    if(!raw){ ensureDefaultInitialPct(); return; }
-    try{
-      const d = JSON.parse(raw);
-      $("client").value = d.client ?? "";
-      $("date").value = d.date ?? nowISODate();
-      $("brand").value = d.brand ?? "";
-      $("itemType").value = d.itemType ?? "Ropa";
-      $("shipping").value = d.shipping ?? "";
-      $("initial").value = (d.initial ?? "") !== "" ? d.initial : String(DEFAULT_INITIAL_PCT);
-      $("bcv").value = d.bcv ?? "";
-      items = Array.isArray(d.items) ? d.items : [];
-    }catch(e){
-      ensureDefaultInitialPct();
-    }
-  }
-
-  function updateAddBtn(){
-    $("addItemBtn").disabled = !$("brand").value;
-  }
-
-  function addItem(){
-    const store = $("brand").value;
-    const type = $("itemType").value || "Otros";
-    const qty = Number($("itemQty").value || 0);
-    const price = Number($("itemPrice").value || 0);
-    const tax = Number($("itemTax").value || 0);
-
-    if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
-    if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
-
-    // ✅ sin #1
-    const name = `${store} — ${type}`;
-
-    items.push({ store, type, name, qty, price, tax });
-
-    $("itemQty").value = "";
-    $("itemPrice").value = "";
-    $("itemTax").value = "";
-
-    renderItemsChips();
-    saveDraft();
-    updateInitialPreview();
-  }
-
-  function removeItem(idx){
-    items.splice(idx,1);
-    renderItemsChips();
-    saveDraft();
-    updateInitialPreview();
-  }
-
-  function renderItemsChips(){
-    const wrap = $("itemsChips");
-    wrap.innerHTML = "";
-    if(items.length === 0){ wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`; return; }
-    items.forEach((it,i)=>{
-      const div=document.createElement("div");
-      div.className="chip";
-      const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
-      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
-      div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
-      wrap.appendChild(div);
-    });
-  }
-
-  // Preview solo para inicial
-  function getPreviewTotals(){
-    const shippingPct = clamp($("shipping").value, 0, 100);
-    const initialPct = clamp($("initial").value, 0, 100);
-    const bcv = Number($("bcv").value || 0);
-
-    const itemsCalc = items.map(it=>{
-      const subtotal = Number(it.price || 0);
-      const tax = Number(it.tax || 0);
-      const total = subtotal + tax;
-      return { ...it, subtotal, tax, total };
-    });
-
-    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
-    const shippingUSD = totalItemsUSD * (shippingPct / 100);
-    const totalUSD = totalItemsUSD + shippingUSD;
-
-    const initialUSD = totalUSD * (initialPct / 100);
-    const initialBs = bcv ? initialUSD * bcv : 0;
-
-    return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
-  }
-
-  function updateInitialPreview(){
-    const el = $("initialPreview");
+  function updateActiveUserBadge(){
+    const u = getActiveUser();
+    const el = $("activeUserBadge");
     if(!el) return;
+    el.textContent = u ? ("👤 " + u) : "—";
+  }
 
-    if(items.length === 0){
-      el.textContent = "Inicial estimada: —";
+  function showLogin(){
+    $("loginOverlay").classList.add("show");
+    $("loginOverlay").setAttribute("aria-hidden","false");
+    $("loginPass").value = "";
+    updateActiveUserBadge();
+    setTimeout(()=> $("loginPass").focus(), 50);
+  }
+  function hideLogin(){
+    $("loginOverlay").classList.remove("show");
+    $("loginOverlay").setAttribute("aria-hidden","true");
+  }
+
+  function doLogin(){
+    const user = $("loginUser").value;
+    const pass = $("loginPass").value;
+    if(!AUTH[user] || pass !== AUTH[user]){
+      $("loginStatus").textContent = "❌ Datos incorrectos";
+      setTimeout(()=> $("loginStatus").textContent = "🔒 Protegido", 1200);
+      $("loginPass").focus();
+      return;
+    }
+    setActiveUser(user);
+    hideLogin();
+    // Re-inicializa la app con el usuario ya establecido:
+    boot();
+  }
+
+  function doLogout(){
+    if(!confirm("¿Cerrar sesión?")) return;
+    localStorage.removeItem(ACTIVE_USER_KEY);
+    updateActiveUserBadge();
+    // Para evitar que queden datos en pantalla, recargamos:
+    location.reload();
+  }
+
+  /* ===========================
+     APP BOOT (depende del usuario)
+     =========================== */
+  function boot(){
+    const USER = getActiveUser();
+    if(!USER){
+      showLogin();
       return;
     }
 
-    const p = getPreviewTotals();
-    const usdTxt = `$${fmt(p.initialUSD)}`;
-    const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
-    el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
-  }
+    // Prefijo por usuario: TODO queda separado
+    const PFX = `cotizador_${USER}_`;
 
-  function calculate(){
-    if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
-    const store = $("brand").value;
-    if(!store){ alert("Selecciona una Tienda antes de calcular."); $("brand").focus(); return; }
-
-    const shippingPct = clamp($("shipping").value, 0, 100);
-    const initialPct = clamp($("initial").value, 0, 100);
-    const bcv = Number($("bcv").value || 0);
-
-    const itemsCalc = items.map(it=>{
-      const subtotal = Number(it.price || 0);
-      const tax = Number(it.tax || 0);
-      const total = subtotal + tax; // no multiplicar por cantidad
-      return { ...it, subtotal, tax, total };
-    });
-
-    const subtotalUSD = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
-    const taxesUSD = itemsCalc.reduce((a,b)=>a + b.tax, 0);
-    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
-
-    const shippingUSD = totalItemsUSD * (shippingPct / 100);
-    const totalUSD = totalItemsUSD + shippingUSD;
-
-    const initialUSD = totalUSD * (initialPct / 100);
-    const remainingUSD = Math.max(0, totalUSD - initialUSD);
-
-    const totalBs = bcv ? totalUSD * bcv : 0;
-    const initialBs = bcv ? initialUSD * bcv : 0;
-    const remainingBs = bcv ? remainingUSD * bcv : 0;
-
-    const quote = {
-      client:$("client").value.trim(),
-      date:$("date").value,
-      brand:store,
-      shippingPct,
-      initialPct,
-      initialUSD,
-      bcv,
-      items:itemsCalc,
-      subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
-      remainingUSD,
-      totalBs, initialBs, remainingBs
+    const STORAGE = {
+      draft:       PFX + "draft_v1",
+      history:     PFX + "history_v1",
+      theme:       PFX + "theme_v1",
+      mode:        PFX + "mode_v1",
+      rate:        PFX + "rate_v1",
+      rate_last_day:PFX + "rate_day_v1",
+      last_quote:  PFX + "last_quote_v1",
+      payments:    PFX + "payments_v1",
+      terms:       PFX + "terms_v1"
     };
 
-    lastQuote = quote;
-    renderResults(quote);
+    const DEFAULT_INITIAL_PCT = 30;
+    const DEFAULT_TERMS_LINES = [
+      "Para realizar tu encargo es obligatorio pagar la inicial.",
+      "La tasa y los montos en Bs pueden variar según la tasa BCV del momento."
+    ].join("\n");
 
-    history.unshift(quote);
-    history = history.slice(0, 50);
-    localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
-    renderHistory();
-    saveDraft();
-  }
-
-  function renderResults(q){
-    const r = $("results");
-    const lines = q.items.map(it=>`
-      <tr>
-        <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
-        <td>$${fmt(it.subtotal)}</td>
-        <td>$${fmt(it.tax)}</td>
-        <td><b>$${fmt(it.total)}</b></td>
-      </tr>
-    `).join("");
-
-    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
-
-    // ✅ KPI exactamente como pediste
-    r.innerHTML = `
-      <div class="kpis">
-        <div class="kpi">
-          <div class="t">Total (USD)</div>
-          <div class="v">$${fmt(q.totalUSD)}</div>
-        </div>
-
-        <div class="kpi">
-          <div class="t">Total (Bs)</div>
-          <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
-        </div>
-
-        <div class="kpi">
-          <div class="t">Inicial (%)</div>
-          <div class="v">${fmtPct(pct)}%</div>
-        </div>
-
-        <div class="kpi">
-          <div class="t">Inicial (USD / Bs)</div>
-          <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
-        </div>
-
-        <div class="kpi">
-          <div class="t">Restante (USD)</div>
-          <div class="v">$${fmt(q.remainingUSD)}</div>
-        </div>
-      </div>
-
-      <table class="table">
-        <thead><tr><th>Artículo</th><th>Precio</th><th>Impuesto</th><th>Total</th></tr></thead>
-        <tbody>${lines}</tbody>
-      </table>
-
-      <div class="muted" style="margin-top:12px">
-        Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
-        Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
-      </div>
-    `;
-  }
-
-  function renderHistory(){
-    const list = $("historyList");
-    list.innerHTML = "";
-    if(history.length === 0){ list.innerHTML = `<div class="muted">Aún no hay cotizaciones guardadas.</div>`; return; }
-
-    history.forEach((q, idx)=>{
-      const div = document.createElement("div");
-      div.className = "hist";
-      div.innerHTML = `
-        <div class="hist-top">
-          <div>
-            <b>${escapeHtml(q.client || "Sin cliente")}</b>
-            <div class="meta">${escapeHtml(q.brand || "")} • ${q.date || ""}</div>
-          </div>
-          <div style="font-weight:900">$${fmt(q.totalUSD)}</div>
-        </div>
-        <div class="hist-actions">
-          <button data-act="load">Cargar</button>
-          <button data-act="pdf">PDF</button>
-          <button data-act="wa">WhatsApp</button>
-          <button class="del" data-act="del">Eliminar</button>
-        </div>
-      `;
-      div.querySelectorAll("button").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          const act = btn.getAttribute("data-act");
-          if(act==="load") loadFromHistory(idx);
-          if(act==="pdf") exportPDF(history[idx]);
-          if(act==="wa") shareWhatsApp(history[idx]);
-          if(act==="del") deleteFromHistory(idx);
-        });
-      });
-      list.appendChild(div);
-    });
-  }
-
-  function loadFromHistory(index){
-    const q = history[index];
-    if(!q) return;
-
-    $("client").value = q.client ?? "";
-    $("date").value = q.date ?? nowISODate();
-    $("brand").value = q.brand ?? "";
-    $("shipping").value = q.shippingPct ?? "";
-
-    if(q.initialPct != null){
-      $("initial").value = q.initialPct;
-    }else{
-      const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
-      $("initial").value = String(Math.round(inferred * 100) / 100);
+    function safeParse(jsonStr, fallback){ try{ return JSON.parse(jsonStr); }catch(e){ return fallback; } }
+    function nowISODate(){
+      const d=new Date(); const off=d.getTimezoneOffset();
+      const local=new Date(d.getTime()-off*60000);
+      return local.toISOString().slice(0,10);
+    }
+    function nowDateTimeVE(){
+      const d=new Date();
+      const fecha=d.toLocaleDateString("es-VE",{year:"numeric",month:"2-digit",day:"2-digit"});
+      const hora=d.toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
+      return `${fecha} ${hora}`;
+    }
+    function fmt(n){
+      const v=Number(n||0);
+      return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function fmtPct(n){
+      const v=Number(n||0);
+      return v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function clamp(n,min,max){
+      n=Number(n||0);
+      return Math.max(min,Math.min(max,n));
+    }
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
     }
 
-    $("bcv").value = q.bcv ?? "";
-    items = Array.isArray(q.items) ? [...q.items] : [];
-    renderItemsChips();
+    // Estado
+    let items = [];
+    let lastQuote = safeParse(localStorage.getItem(STORAGE.last_quote) || "null", null);
+    let history = safeParse(localStorage.getItem(STORAGE.history) || "[]", []);
+    if(!Array.isArray(history)) history = [];
+    if(!(lastQuote && typeof lastQuote==="object" && !Array.isArray(lastQuote))) lastQuote = null;
 
-    lastQuote = q;
-    localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
-    renderResults(q);
-    saveDraft();
-    updateAddBtn();
-    updateInitialPreview();
-    window.scrollTo({top:0, behavior:"smooth"});
-  }
+    // Pagos
+    const defaultPayments = {
+      bs:"Pago Móvil, Transferencia",
+      usd:"Efectivo, Zinli, Wally",
+      cop:"Bancolombia, Nequi, Nu",
+      usdt:"Binance Pay"
+    };
+    let payments = Object.assign({}, defaultPayments, safeParse(localStorage.getItem(STORAGE.payments) || "null", {}) || {});
 
-  function deleteFromHistory(index){
-    if(!confirm("¿Eliminar esta cotización del historial?")) return;
-    history.splice(index, 1);
-    localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    renderHistory();
-  }
+    // Términos
+    let termsText = (localStorage.getItem(STORAGE.terms) || DEFAULT_TERMS_LINES);
 
-  function clearHistory(){
-    if(!confirm("¿Borrar TODO el historial?")) return;
-    history = [];
-    localStorage.removeItem(STORAGE.history);
-    renderHistory();
-  }
+    function applyPaymentsToUI(){
+      $("pay_bs").value = payments.bs || "";
+      $("pay_usd").value = payments.usd || "";
+      $("pay_cop").value = payments.cop || "";
+      $("pay_usdt").value = payments.usdt || "";
+    }
+    function readPaymentsFromUI(){
+      payments = {
+        bs: ($("pay_bs").value || "").trim(),
+        usd: ($("pay_usd").value || "").trim(),
+        cop: ($("pay_cop").value || "").trim(),
+        usdt: ($("pay_usdt").value || "").trim()
+      };
+      localStorage.setItem(STORAGE.payments, JSON.stringify(payments));
+    }
+    function applyTermsToUI(){
+      $("terms_text").value = termsText || "";
+    }
+    function readTermsFromUI(){
+      termsText = ($("terms_text").value || "").trim();
+      localStorage.setItem(STORAGE.terms, termsText);
+    }
+    function formatTermsForWA(text){
+      const lines = String(text || "").split("\n").map(l=>l.trim()).filter(Boolean);
+      if(lines.length === 0) return "• —";
+      return lines.map(l=>{
+        if(l.startsWith("•")) return l;
+        if(l.startsWith("-")) return "• " + l.slice(1).trim();
+        return "• " + l;
+      }).join("\n");
+    }
 
-  // WhatsApp (restante SOLO USD) + términos editables
-  function quoteToMessage(q){
-    const dt = nowDateTimeVE();
+    // UI init
+    $("brandTitle").textContent = "Cotizador Pro";
+    updateActiveUserBadge();
+    if(!$("date").value) $("date").value = nowISODate();
 
-    const itemsLines = q.items.map((it, i)=>{
-      const qty = it.qty ? ` • Cant: ${it.qty}` : "";
-      return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
-    }).join("\n");
+    const savedTheme = localStorage.getItem(STORAGE.theme);
+    // Limpia clase previa por si cambiaste de user sin recargar (extra)
+    document.body.classList.remove("dark");
+    if(savedTheme === "dark"){ document.body.classList.add("dark"); $("themeToggle").textContent = "☀️"; }
+    else { $("themeToggle").textContent = "🌙"; }
 
-    const totalArticulosUSD = q.totalItemsUSD;
-    const envioUSD = q.shippingUSD;
-    const totalUSD = q.totalUSD;
+    function updatePrivateToggleText(){
+      const d=$("privateDetails"), btn=$("privateToggleBtn");
+      if(!d||!btn) return;
+      btn.textContent = d.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
+    }
+    function togglePrivateSection(){
+      const d=$("privateDetails"); if(!d) return;
+      d.open = !d.open; updatePrivateToggleText();
+    }
+    $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
 
-    const inicialUSD = q.initialUSD;
-    const restanteUSD = q.remainingUSD;
+    $("themeToggle").onclick = ()=>{
+      document.body.classList.toggle("dark");
+      const isDark=document.body.classList.contains("dark");
+      $("themeToggle").textContent=isDark?"☀️":"🌙";
+      localStorage.setItem(STORAGE.theme, isDark?"dark":"light");
+    };
 
-    const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+    function ensureDefaultInitialPct(){
+      if($("initial").value === "" || $("initial").value == null){
+        $("initial").value = String(DEFAULT_INITIAL_PCT);
+      }
+    }
 
-    const tasa = Number(q.bcv || 0);
-    const inicialBs = tasa ? q.initialBs : 0;
-    const totalBs = tasa ? q.totalBs : 0;
+    function saveDraft(){
+      const draft = {
+        client:$("client").value.trim(),
+        date:$("date").value,
+        brand:$("brand").value,
+        itemType:$("itemType").value,
+        shipping:$("shipping").value,
+        initial:$("initial").value, // %
+        bcv:$("bcv").value,
+        items:items
+      };
+      localStorage.setItem(STORAGE.draft, JSON.stringify(draft));
+    }
 
-    const payBS = (payments.bs || "").trim();
-    const payUSD = (payments.usd || "").trim();
-    const payCOP = (payments.cop || "").trim();
-    const payUSDT = (payments.usdt || "").trim();
+    function loadDraft(){
+      const raw = localStorage.getItem(STORAGE.draft);
+      if(!raw){ ensureDefaultInitialPct(); return; }
+      try{
+        const d = JSON.parse(raw);
+        $("client").value = d.client ?? "";
+        $("date").value = d.date ?? nowISODate();
+        $("brand").value = d.brand ?? "";
+        $("itemType").value = d.itemType ?? "Ropa";
+        $("shipping").value = d.shipping ?? "";
+        $("initial").value = (d.initial ?? "") !== "" ? d.initial : String(DEFAULT_INITIAL_PCT);
+        $("bcv").value = d.bcv ?? "";
+        items = Array.isArray(d.items) ? d.items : [];
+      }catch(e){
+        ensureDefaultInitialPct();
+      }
+    }
 
-    const termsBlock = formatTermsForWA(termsText || DEFAULT_TERMS_LINES);
+    function updateAddBtn(){
+      $("addItemBtn").disabled = !$("brand").value;
+    }
 
-    const msg = [
+    function addItem(){
+      const store = $("brand").value;
+      const type = $("itemType").value || "Otros";
+      const qty = Number($("itemQty").value || 0);
+      const price = Number($("itemPrice").value || 0);
+      const tax = Number($("itemTax").value || 0);
+
+      if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
+      if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
+
+      const name = `${store} — ${type}`;
+      items.push({ store, type, name, qty, price, tax });
+
+      $("itemQty").value = "";
+      $("itemPrice").value = "";
+      $("itemTax").value = "";
+
+      renderItemsChips();
+      saveDraft();
+      updateInitialPreview();
+    }
+
+    function removeItem(idx){
+      items.splice(idx,1);
+      renderItemsChips();
+      saveDraft();
+      updateInitialPreview();
+    }
+
+    function renderItemsChips(){
+      const wrap = $("itemsChips");
+      wrap.innerHTML = "";
+      if(items.length === 0){ wrap.innerHTML = `<div class="muted">No has agregado artículos.</div>`; return; }
+      items.forEach((it,i)=>{
+        const div=document.createElement("div");
+        div.className="chip";
+        const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
+        div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
+        div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
+        wrap.appendChild(div);
+      });
+    }
+
+    // Preview solo para inicial
+    function getPreviewTotals(){
+      const shippingPct = clamp($("shipping").value, 0, 100);
+      const initialPct = clamp($("initial").value, 0, 100);
+      const bcv = Number($("bcv").value || 0);
+
+      const itemsCalc = items.map(it=>{
+        const subtotal = Number(it.price || 0);
+        const tax = Number(it.tax || 0);
+        const total = subtotal + tax;
+        return { ...it, subtotal, tax, total };
+      });
+
+      const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+      const shippingUSD = totalItemsUSD * (shippingPct / 100);
+      const totalUSD = totalItemsUSD + shippingUSD;
+
+      const initialUSD = totalUSD * (initialPct / 100);
+      const initialBs = bcv ? initialUSD * bcv : 0;
+
+      return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
+    }
+
+    function updateInitialPreview(){
+      const el = $("initialPreview");
+      if(!el) return;
+
+      if(items.length === 0){
+        el.textContent = "Inicial estimada: —";
+        return;
+      }
+
+      const p = getPreviewTotals();
+      const usdTxt = `$${fmt(p.initialUSD)}`;
+      const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
+      el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
+    }
+
+    function calculate(){
+      if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
+      const store = $("brand").value;
+      if(!store){ alert("Selecciona una Tienda antes de calcular."); $("brand").focus(); return; }
+
+      const shippingPct = clamp($("shipping").value, 0, 100);
+      const initialPct = clamp($("initial").value, 0, 100);
+      const bcv = Number($("bcv").value || 0);
+
+      const itemsCalc = items.map(it=>{
+        const subtotal = Number(it.price || 0);
+        const tax = Number(it.tax || 0);
+        const total = subtotal + tax; // no multiplicar por cantidad
+        return { ...it, subtotal, tax, total };
+      });
+
+      const subtotalUSD = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
+      const taxesUSD = itemsCalc.reduce((a,b)=>a + b.tax, 0);
+      const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+
+      const shippingUSD = totalItemsUSD * (shippingPct / 100);
+      const totalUSD = totalItemsUSD + shippingUSD;
+
+      const initialUSD = totalUSD * (initialPct / 100);
+      const remainingUSD = Math.max(0, totalUSD - initialUSD);
+
+      const totalBs = bcv ? totalUSD * bcv : 0;
+      const initialBs = bcv ? initialUSD * bcv : 0;
+      const remainingBs = bcv ? remainingUSD * bcv : 0;
+
+      const quote = {
+        client:$("client").value.trim(),
+        date:$("date").value,
+        brand:store,
+        shippingPct,
+        initialPct,
+        initialUSD,
+        bcv,
+        items:itemsCalc,
+        subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
+        remainingUSD,
+        totalBs, initialBs, remainingBs
+      };
+
+      lastQuote = quote;
+      renderResults(quote);
+
+      history.unshift(quote);
+      history = history.slice(0, 50);
+      localStorage.setItem(STORAGE.history, JSON.stringify(history));
+      localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
+      renderHistory();
+      saveDraft();
+    }
+
+    function renderResults(q){
+      const r = $("results");
+      const lines = q.items.map(it=>`
+        <tr>
+          <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
+          <td>$${fmt(it.subtotal)}</td>
+          <td>$${fmt(it.tax)}</td>
+          <td><b>$${fmt(it.total)}</b></td>
+        </tr>
+      `).join("");
+
+      const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+
+      r.innerHTML = `
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Total (USD)</div>
+            <div class="v">$${fmt(q.totalUSD)}</div>
+          </div>
+
+          <div class="kpi">
+            <div class="t">Total (Bs)</div>
+            <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
+          </div>
+
+          <div class="kpi">
+            <div class="t">Inicial (%)</div>
+            <div class="v">${fmtPct(pct)}%</div>
+          </div>
+
+          <div class="kpi">
+            <div class="t">Inicial (USD / Bs)</div>
+            <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
+          </div>
+
+          <div class="kpi">
+            <div class="t">Restante (USD)</div>
+            <div class="v">$${fmt(q.remainingUSD)}</div>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead><tr><th>Artículo</th><th>Precio</th><th>Impuesto</th><th>Total</th></tr></thead>
+          <tbody>${lines}</tbody>
+        </table>
+
+        <div class="muted" style="margin-top:12px">
+          Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
+          Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
+        </div>
+      `;
+    }
+
+    function renderHistory(){
+      const list = $("historyList");
+      list.innerHTML = "";
+      if(history.length === 0){ list.innerHTML = `<div class="muted">Aún no hay cotizaciones guardadas.</div>`; return; }
+
+      history.forEach((q, idx)=>{
+        const div = document.createElement("div");
+        div.className = "hist";
+        div.innerHTML = `
+          <div class="hist-top">
+            <div>
+              <b>${escapeHtml(q.client || "Sin cliente")}</b>
+              <div class="meta">${escapeHtml(q.brand || "")} • ${q.date || ""}</div>
+            </div>
+            <div style="font-weight:900">$${fmt(q.totalUSD)}</div>
+          </div>
+          <div class="hist-actions">
+            <button data-act="load">Cargar</button>
+            <button data-act="pdf">PDF</button>
+            <button data-act="wa">WhatsApp</button>
+            <button class="del" data-act="del">Eliminar</button>
+          </div>
+        `;
+        div.querySelectorAll("button").forEach(btn=>{
+          btn.addEventListener("click", ()=>{
+            const act = btn.getAttribute("data-act");
+            if(act==="load") loadFromHistory(idx);
+            if(act==="pdf") exportPDF(history[idx]);
+            if(act==="wa") shareWhatsApp(history[idx]);
+            if(act==="del") deleteFromHistory(idx);
+          });
+        });
+        list.appendChild(div);
+      });
+    }
+
+    function loadFromHistory(index){
+      const q = history[index];
+      if(!q) return;
+
+      $("client").value = q.client ?? "";
+      $("date").value = q.date ?? nowISODate();
+      $("brand").value = q.brand ?? "";
+      $("shipping").value = q.shippingPct ?? "";
+
+      if(q.initialPct != null){
+        $("initial").value = q.initialPct;
+      }else{
+        const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
+        $("initial").value = String(Math.round(inferred * 100) / 100);
+      }
+
+      $("bcv").value = q.bcv ?? "";
+      items = Array.isArray(q.items) ? [...q.items] : [];
+      renderItemsChips();
+
+      lastQuote = q;
+      localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
+      renderResults(q);
+      saveDraft();
+      updateAddBtn();
+      updateInitialPreview();
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function deleteFromHistory(index){
+      if(!confirm("¿Eliminar esta cotización del historial?")) return;
+      history.splice(index, 1);
+      localStorage.setItem(STORAGE.history, JSON.stringify(history));
+      renderHistory();
+    }
+
+    function clearHistory(){
+      if(!confirm("¿Borrar TODO el historial?")) return;
+      history = [];
+      localStorage.removeItem(STORAGE.history);
+      renderHistory();
+    }
+
+    function quoteToMessage(q){
+      const dt = nowDateTimeVE();
+
+      const itemsLines = q.items.map((it, i)=>{
+        const qty = it.qty ? ` • Cant: ${it.qty}` : "";
+        return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
+      }).join("\n");
+
+      const totalArticulosUSD = q.totalItemsUSD;
+      const envioUSD = q.shippingUSD;
+      const totalUSD = q.totalUSD;
+
+      const inicialUSD = q.initialUSD;
+      const restanteUSD = q.remainingUSD;
+
+      const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+
+      const tasa = Number(q.bcv || 0);
+      const inicialBs = tasa ? q.initialBs : 0;
+      const totalBs = tasa ? q.totalBs : 0;
+
+      const payBS = (payments.bs || "").trim();
+      const payUSD = (payments.usd || "").trim();
+      const payCOP = (payments.cop || "").trim();
+      const payUSDT = (payments.usdt || "").trim();
+
+      const termsBlock = formatTermsForWA(termsText || DEFAULT_TERMS_LINES);
+
+      const msg = [
 `🧾 *COTIZACIÓN*
 🏷️ Tienda: *${q.brand || "—"}*
 👤 Cliente: *${q.client || "—"}*
@@ -926,243 +1100,262 @@ ${termsBlock}`,
 • *Dólares (USD):* ${payUSD || "—"}
 • *Pesos Colombianos (COP):* ${payCOP || "—"}
 • *USDT:* ${payUSDT || "—"}`
-    ].join("\n\n");
+      ].join("\n\n");
 
-    return msg;
-  }
+      return msg;
+    }
 
-  function shareWhatsApp(q){
-    if(!q){ alert("Primero calcula una cotización."); return; }
-    const msg = encodeURIComponent(quoteToMessage(q));
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
+    function shareWhatsApp(q){
+      if(!q){ alert("Primero calcula una cotización."); return; }
+      const msg = encodeURIComponent(quoteToMessage(q));
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
+    }
 
-  function exportPDF(q){
-    if(!q){ alert("Primero calcula una cotización."); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    function exportPDF(q){
+      if(!q){ alert("Primero calcula una cotización."); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("Cotización", 14, 16);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Cotización", 14, 16);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    let y = 26;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      let y = 26;
 
-    const head = [
-      q.client ? `Cliente: ${q.client}` : "",
-      q.brand ? `Tienda: ${q.brand}` : "",
-      q.date ? `Fecha: ${q.date}` : "",
-      q.bcv ? `Tasa: ${fmt(q.bcv)} Bs/USD` : ""
-    ].filter(Boolean);
+      const head = [
+        q.client ? `Cliente: ${q.client}` : "",
+        q.brand ? `Tienda: ${q.brand}` : "",
+        q.date ? `Fecha: ${q.date}` : "",
+        q.bcv ? `Tasa: ${fmt(q.bcv)} Bs/USD` : ""
+      ].filter(Boolean);
 
-    head.forEach(line=>{ doc.text(line, 14, y); y += 6; });
+      head.forEach(line=>{ doc.text(line, 14, y); y += 6; });
 
-    y += 4;
-    doc.setFont("helvetica", "bold");
-    doc.text("Items:", 14, y); y += 7;
+      y += 4;
+      doc.setFont("helvetica", "bold");
+      doc.text("Items:", 14, y); y += 7;
 
-    doc.setFont("helvetica", "normal");
-    q.items.forEach(it=>{
-      const qty = it.qty ? ` (Cant: ${it.qty})` : "";
-      const line = `- ${it.name}${qty}: $${fmt(it.total)} (P $${fmt(it.subtotal)} + I $${fmt(it.tax)})`;
-      doc.text(line, 14, y);
+      doc.setFont("helvetica", "normal");
+      q.items.forEach(it=>{
+        const qty = it.qty ? ` (Cant: ${it.qty})` : "";
+        const line = `- ${it.name}${qty}: $${fmt(it.total)} (P $${fmt(it.subtotal)} + I $${fmt(it.tax)})`;
+        doc.text(line, 14, y);
+        y += 6;
+        if(y > 270){ doc.addPage(); y = 20; }
+      });
+
       y += 6;
-      if(y > 270){ doc.addPage(); y = 20; }
-    });
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total USD: $${fmt(q.totalUSD)}`, 14, y); y += 6;
 
-    y += 6;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Total USD: $${fmt(q.totalUSD)}`, 14, y); y += 6;
+      const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+      doc.setFont("helvetica", "normal");
+      doc.text(`Inicial (${fmtPct(pct)}%): $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
 
-    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
-    doc.setFont("helvetica", "normal");
-    doc.text(`Inicial (${fmtPct(pct)}%): $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
+      if(q.bcv){
+        doc.text(`Total Bs (referencia): ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
+      }
 
-    if(q.bcv){
-      doc.text(`Total Bs (referencia): ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
+      doc.save(`Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}.pdf`);
     }
 
-    doc.save(`Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}.pdf`);
-  }
+    async function updateRate({force=false}={}){
+      const bcv = $("bcv");
+      const state = $("rateState");
 
-  async function updateRate({force=false}={}){
-    const bcv = $("bcv");
-    const state = $("rateState");
+      const last = Number(localStorage.getItem(STORAGE.rate) || 0);
+      const lastDay = localStorage.getItem(STORAGE.rate_last_day) || "";
+      const today = nowISODate();
 
-    const last = Number(localStorage.getItem(STORAGE.rate) || 0);
-    const lastDay = localStorage.getItem(STORAGE.rate_last_day) || "";
-    const today = nowISODate();
+      if(!force && last && lastDay === today){
+        bcv.value = last;
+        state.textContent = "Tasa guardada";
+        updateInitialPreview();
+        return;
+      }
 
-    if(!force && last && lastDay === today){
-      bcv.value = last;
-      state.textContent = "Tasa guardada";
-      updateInitialPreview();
-      return;
+      try{
+        state.textContent = "Actualizando...";
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        const data = await res.json();
+        const rate = data?.rates?.VES;
+        if(!rate) throw new Error("Sin tasa");
+        const r = Number(rate).toFixed(2);
+        bcv.value = r;
+        localStorage.setItem(STORAGE.rate, r);
+        localStorage.setItem(STORAGE.rate_last_day, today);
+        state.textContent = "Tasa actualizada";
+        updateInitialPreview();
+      }catch(e){
+        state.textContent = "Tasa manual";
+        updateInitialPreview();
+      }
     }
 
-    try{
-      state.textContent = "Actualizando...";
-      const res = await fetch("https://open.er-api.com/v6/latest/USD");
-      const data = await res.json();
-      const rate = data?.rates?.VES;
-      if(!rate) throw new Error("Sin tasa");
-      const r = Number(rate).toFixed(2);
-      bcv.value = r;
-      localStorage.setItem(STORAGE.rate, r);
-      localStorage.setItem(STORAGE.rate_last_day, today);
-      state.textContent = "Tasa actualizada";
-      updateInitialPreview();
-    }catch(e){
-      state.textContent = "Tasa manual";
-      updateInitialPreview();
-    }
-  }
+    function resetAll(){
+      if(!confirm("¿Reiniciar formulario e ítems? (No borra historial)")) return;
+      items = [];
+      lastQuote = null;
+      localStorage.removeItem(STORAGE.last_quote);
 
-  function resetAll(){
-    if(!confirm("¿Reiniciar formulario e ítems? (No borra historial)")) return;
-    items = [];
-    lastQuote = null;
-    localStorage.removeItem(STORAGE.last_quote);
+      $("client").value = "";
+      $("date").value = nowISODate();
+      $("brand").value = "";
+      $("itemType").value = "Ropa";
+      $("shipping").value = "";
+      $("initial").value = String(DEFAULT_INITIAL_PCT);
+      $("bcv").value = "";
 
-    $("client").value = "";
-    $("date").value = nowISODate();
-    $("brand").value = "";
-    $("itemType").value = "Ropa";
-    $("shipping").value = "";
-    $("initial").value = String(DEFAULT_INITIAL_PCT);
-    $("bcv").value = "";
+      $("itemQty").value = "";
+      $("itemPrice").value = "";
+      $("itemTax").value = "";
 
-    $("itemQty").value = "";
-    $("itemPrice").value = "";
-    $("itemTax").value = "";
-
-    $("results").innerHTML = `<div class="muted">Sin cotización todavía.</div>`;
-    renderItemsChips();
-    saveDraft();
-    updateAddBtn();
-    updateInitialPreview();
-  }
-
-  function setClientMode(enabled){
-    document.body.classList.toggle("client", !!enabled);
-    const btn = $("clientModeBtn");
-    if(btn) btn.textContent = enabled ? "Salir de Modo Cliente" : "Modo Cliente";
-    $("modeBadge").textContent = enabled ? "Cliente" : "Admin";
-
-    if(enabled){
-      $("calcDetails").open = true;
-      $("results").scrollIntoView({behavior:"smooth", block:"start"});
-    }
-    localStorage.setItem(STORAGE.mode, enabled ? "client" : "admin");
-  }
-
-  // Events
-  $("privateToggleBtn").addEventListener("click", togglePrivateSection);
-
-  $("addItemBtn").addEventListener("click", addItem);
-  $("calcBtn").addEventListener("click", calculate);
-  $("pdfBtn").addEventListener("click", () => exportPDF(lastQuote));
-  $("waBtn").addEventListener("click", () => shareWhatsApp(lastQuote));
-  $("resetBtn").addEventListener("click", resetAll);
-  $("clearHistoryBtn").addEventListener("click", clearHistory);
-
-  $("clientModeBtn").addEventListener("click", ()=>{
-    const enabled = !document.body.classList.contains("client");
-    if(enabled && !lastQuote && history.length > 0) lastQuote = history[0];
-    if(lastQuote) localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
-    setClientMode(enabled);
-    if(enabled && lastQuote) renderResults(lastQuote);
-  });
-
-  // Autosave & preview updates
-  ["client","date"].forEach(id=> $(id).addEventListener("input", saveDraft));
-  ["shipping","initial","bcv"].forEach(id=>{
-    $(id).addEventListener("input", ()=>{
-      saveDraft();
-      updateInitialPreview();
-    });
-  });
-
-  ["brand","itemType"].forEach(id=>{
-    $(id).addEventListener("change", ()=>{
+      $("results").innerHTML = `<div class="muted">Sin cotización todavía.</div>`;
+      renderItemsChips();
       saveDraft();
       updateAddBtn();
       updateInitialPreview();
-    });
-  });
-
-  ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=> $(id).addEventListener("input", readPaymentsFromUI));
-  $("terms_text").addEventListener("input", readTermsFromUI);
-
-  // ✅ Mini calc 1: sin moneda
-  function m1(op){
-    const a = Number($("m1a").value||0);
-    const b = Number($("m1b").value||0);
-    let r = 0;
-    if(op === "+") r = a + b;
-    if(op === "-") r = a - b;
-    if(op === "*") r = a * b;
-    $("m1out").textContent = fmt(r); // sin $
-  }
-  $("m1plus").addEventListener("click", ()=>m1("+"));
-  $("m1minus").addEventListener("click", ()=>m1("-"));
-  $("m1mul").addEventListener("click", ()=>m1("*"));
-
-  // ✅ Mini calc 2: Bs A/B con + - * y resultado en USD según BCV
-  function m2(op){
-    const a = Number($("m2a").value || 0);
-    const b = Number($("m2b").value || 0);
-    const rate = Number($("bcv").value || 0);
-
-    if(!rate || rate <= 0){
-      $("m2out").textContent = "Coloca la Tasa BCV para convertir.";
-      return;
     }
 
-    let bs = 0;
-    if(op === "+") bs = a + b;
-    if(op === "-") bs = a - b;
-    if(op === "*") bs = a * b;
+    function setClientMode(enabled){
+      document.body.classList.toggle("client", !!enabled);
+      const btn = $("clientModeBtn");
+      if(btn) btn.textContent = enabled ? "Salir de Modo Cliente" : "Modo Cliente";
+      $("modeBadge").textContent = enabled ? "Cliente" : "Admin";
 
-    const usd = bs / rate;
-    $("m2out").textContent = "$" + fmt(usd);
+      if(enabled){
+        $("calcDetails").open = true;
+        $("results").scrollIntoView({behavior:"smooth", block:"start"});
+      }
+      localStorage.setItem(STORAGE.mode, enabled ? "client" : "admin");
+    }
+
+    // Events
+    $("privateToggleBtn").onclick = togglePrivateSection;
+
+    $("addItemBtn").onclick = addItem;
+    $("calcBtn").onclick = calculate;
+    $("pdfBtn").onclick = () => exportPDF(lastQuote);
+    $("waBtn").onclick = () => shareWhatsApp(lastQuote);
+    $("resetBtn").onclick = resetAll;
+    $("clearHistoryBtn").onclick = clearHistory;
+
+    $("clientModeBtn").onclick = ()=>{
+      const enabled = !document.body.classList.contains("client");
+      if(enabled && !lastQuote && history.length > 0) lastQuote = history[0];
+      if(lastQuote) localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
+      setClientMode(enabled);
+      if(enabled && lastQuote) renderResults(lastQuote);
+    };
+
+    // Autosave & preview updates
+    ["client","date"].forEach(id=> $(id).addEventListener("input", saveDraft));
+    ["shipping","initial","bcv"].forEach(id=>{
+      $(id).addEventListener("input", ()=>{
+        saveDraft();
+        updateInitialPreview();
+      });
+    });
+
+    ["brand","itemType"].forEach(id=>{
+      $(id).addEventListener("change", ()=>{
+        saveDraft();
+        updateAddBtn();
+        updateInitialPreview();
+      });
+    });
+
+    ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=> $(id).addEventListener("input", readPaymentsFromUI));
+    $("terms_text").addEventListener("input", readTermsFromUI);
+
+    // Mini calc 1
+    function m1(op){
+      const a = Number($("m1a").value||0);
+      const b = Number($("m1b").value||0);
+      let r = 0;
+      if(op === "+") r = a + b;
+      if(op === "-") r = a - b;
+      if(op === "*") r = a * b;
+      $("m1out").textContent = fmt(r);
+    }
+    $("m1plus").onclick = ()=>m1("+");
+    $("m1minus").onclick = ()=>m1("-");
+    $("m1mul").onclick = ()=>m1("*");
+
+    // Mini calc 2
+    function m2(op){
+      const a = Number($("m2a").value || 0);
+      const b = Number($("m2b").value || 0);
+      const rate = Number($("bcv").value || 0);
+
+      if(!rate || rate <= 0){
+        $("m2out").textContent = "Coloca la Tasa BCV para convertir.";
+        return;
+      }
+
+      let bs = 0;
+      if(op === "+") bs = a + b;
+      if(op === "-") bs = a - b;
+      if(op === "*") bs = a * b;
+
+      const usd = bs / rate;
+      $("m2out").textContent = "$" + fmt(usd);
+    }
+    $("m2plus").onclick = ()=>m2("+");
+    $("m2minus").onclick = ()=>m2("-");
+    $("m2mul").onclick = ()=>m2("*");
+
+    $("rateBtn").onclick = ()=>updateRate({force:true});
+
+    // Start
+    loadDraft();
+    applyPaymentsToUI();
+    applyTermsToUI();
+    ensureDefaultInitialPct();
+    renderHistory();
+    renderItemsChips();
+    updateAddBtn();
+    updateInitialPreview();
+
+    const savedMode = localStorage.getItem(STORAGE.mode);
+    if(savedMode === "client"){
+      if(!lastQuote && history.length > 0) lastQuote = history[0];
+      if(lastQuote) localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
+      setClientMode(true);
+      if(lastQuote) renderResults(lastQuote);
+    }else{
+      $("modeBadge").textContent = "Admin";
+      document.body.classList.remove("client");
+    }
+
+    updateRate({ force: false });
+    updatePrivateToggleText();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+    }
   }
-  $("m2plus").addEventListener("click", ()=>m2("+"));
-  $("m2minus").addEventListener("click", ()=>m2("-"));
-  $("m2mul").addEventListener("click", ()=>m2("*"));
 
-  $("rateBtn").addEventListener("click", ()=>updateRate({force:true}));
+  /* ===========================
+     LOGIN EVENTS
+     =========================== */
+  $("loginBtn").addEventListener("click", doLogin);
+  $("loginClearBtn").addEventListener("click", ()=>{
+    $("loginPass").value = "";
+    $("loginPass").focus();
+  });
+  $("loginPass").addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") doLogin();
+  });
+  $("logoutBtn").addEventListener("click", doLogout);
 
-  // Start
-  loadDraft();
-  applyPaymentsToUI();
-  applyTermsToUI();
-  ensureDefaultInitialPct();
-  renderHistory();
-  renderItemsChips();
-  updateAddBtn();
-  updateInitialPreview();
+  // Arranque: si no hay usuario activo -> login
+  updateActiveUserBadge();
+  boot();
 
-  const savedMode = localStorage.getItem(STORAGE.mode);
-  if(savedMode === "client"){
-    if(!lastQuote && history.length > 0) lastQuote = history[0];
-    if(lastQuote) localStorage.setItem(STORAGE.last_quote, JSON.stringify(lastQuote));
-    setClientMode(true);
-    if(lastQuote) renderResults(lastQuote);
-  }else{
-    $("modeBadge").textContent = "Admin";
-  }
-
-  updateRate({ force: false });
-  updatePrivateToggleText();
-
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
-  }
 })();
 </script>
 </body>
 </html>
-
