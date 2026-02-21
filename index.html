@@ -24,7 +24,6 @@
     --shadow: 0 18px 40px rgba(0,0,0,.12);
     --radius: 18px;
 
-    /* Premium motion tokens */
     --ease-out: cubic-bezier(.2,.8,.2,1);
     --ease-inout: cubic-bezier(.4,0,.2,1);
     --t-fast: 140ms;
@@ -150,6 +149,25 @@
     border-radius: 16px;
     font-size: 16px;
     border: 1px solid transparent;
+  }
+
+  /* ✅ Fecha igual a los demás inputs (corrige “desorden” visual) */
+  input[type="date"]{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    box-sizing: border-box;
+    border:none;
+    background: var(--field);
+    color: var(--text);
+    padding: 14px 14px;
+    border-radius: 16px;
+    font-size: 16px;
+    border: 1px solid transparent;
+  }
+  body.dark input[type="date"]::-webkit-calendar-picker-indicator{
+    filter: invert(1);
+    opacity: .85;
   }
 
   input:focus{
@@ -348,6 +366,7 @@
     h2{ font-size:17px; }
     .row2{ grid-template-columns: 1fr; }
     input{ font-size:16px; padding:16px; border-radius:18px; }
+    input[type="date"]{ font-size:16px; padding:16px; border-radius:18px; }
     .btn{ padding:16px; font-size:16px; border-radius:18px; }
     .mini-actions{ grid-template-columns: 1fr; }
     .chips{ gap:6px; }
@@ -597,8 +616,7 @@
 
 <div class="footerbar">
   <div class="wrap">
-    <!-- ✅ ahora solo llama a una función toggle -->
-    <button class="btn secondary" type="button" id="privateToggleBtn">Ajustes Privados</button>
+    <button class="btn secondary" type="button" id="privateToggleBtn">Abrir Ajustes Privados</button>
 
     <button class="btn" type="button" onclick="document.getElementById('historyList').scrollIntoView({behavior:'smooth'});">
       Ver Historial
@@ -621,7 +639,15 @@
   // HELPERS
   // =========================
   const $ = (id) => document.getElementById(id);
-  const money = (n) => (Number(n || 0)).toFixed(2);
+
+  // ✅ Formato: miles con punto y decimales con coma
+  const fmtMoney = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function money(n){
+    const num = Number(n);
+    if(!Number.isFinite(num)) return fmtMoney.format(0);
+    return fmtMoney.format(num);
+  }
+
   const nowISODate = () => {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -656,19 +682,29 @@
   }
 
   // =========================
-  // ✅ Toggle Ajustes Privados (footer button)
+  // ✅ Toggle Ajustes Privados (con texto Abrir/Cerrar)
   // =========================
+  function updatePrivateToggleText(){
+    const d = $("privateDetails");
+    const btn = $("privateToggleBtn");
+    if(!d || !btn) return;
+    btn.textContent = d.open ? "Cerrar Ajustes Privados" : "Abrir Ajustes Privados";
+  }
+
   function togglePrivateSection(){
     const d = $("privateDetails");
     if(!d) return;
 
-    const willOpen = !d.open;
-    d.open = willOpen;
+    d.open = !d.open;
+    updatePrivateToggleText();
 
-    if(willOpen){
+    if(d.open){
       d.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
+
+  // si el usuario abre/cierra tocando el summary, igual actualiza el botón
+  $("privateDetails").addEventListener("toggle", updatePrivateToggleText);
 
   // =========================
   // RATE AUTO (emprendimiento)
@@ -709,8 +745,8 @@
       if(!force && lastDay === todayKey()){
         const meta = loadRateMeta();
         if(meta?.rate){
-          $("bcv").value = Number(meta.rate).toFixed(2);
-          setRateStatus(`Tasa automática (cache): ${Number(meta.rate).toFixed(2)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+          $("bcv").value = Number(meta.rate).toFixed(2); // input necesita punto
+          setRateStatus(`Tasa automática (cache): ${money(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
           saveDraft();
         }
         return;
@@ -720,16 +756,16 @@
       const { rate, source } = await fetchUSDVES();
       if(!Number.isFinite(rate) || rate <= 0) throw new Error("Tasa inválida");
 
-      $("bcv").value = rate.toFixed(2);
+      $("bcv").value = rate.toFixed(2); // input necesita punto
       saveRateMeta(rate, source);
-      setRateStatus(`Tasa automática: ${rate.toFixed(2)} • Fuente: ${source} • ${new Date().toLocaleString()}`);
+      setRateStatus(`Tasa automática: ${money(rate)} • Fuente: ${source} • ${new Date().toLocaleString()}`);
       saveDraft();
     }catch(err){
       console.warn("Error actualizando tasa:", err);
       const meta = loadRateMeta();
       if(meta?.rate){
         $("bcv").value = Number(meta.rate).toFixed(2);
-        setRateStatus(`No se pudo actualizar. Usando última guardada: ${Number(meta.rate).toFixed(2)} • ${new Date(meta.updatedAt).toLocaleString()}`);
+        setRateStatus(`No se pudo actualizar. Usando última guardada: ${money(meta.rate)} • ${new Date(meta.updatedAt).toLocaleString()}`);
         saveDraft();
         return;
       }
@@ -1014,7 +1050,6 @@
     lines.push(`Total Bs: Bs ${money(q.totalBs)}`);
     lines.push(``);
     lines.push(`📝 Nota: La tasa aplicada corresponde al momento de emisión de esta cotización y puede variar según el día.`);
-
     return lines.join("\n");
   }
 
@@ -1275,6 +1310,7 @@
   }
 
   updateRate({ force: false });
+  updatePrivateToggleText();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js")
