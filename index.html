@@ -75,9 +75,7 @@ header{
   margin: 0 auto;
 }
 
-.brand{
-  display:flex; align-items:center; gap:10px;
-}
+.brand{ display:flex; align-items:center; gap:10px; }
 .logo{
   width:42px; height:42px;
   border-radius: 14px;
@@ -86,16 +84,10 @@ header{
   color:white; font-weight:800;
   box-shadow: 0 10px 30px rgba(0,122,255,.35);
 }
-.brand h1{
-  margin:0; font-size: 18px; letter-spacing:.2px;
-}
-.brand .sub{
-  font-size:12px; color:var(--muted); margin-top:2px;
-}
+.brand h1{ margin:0; font-size: 18px; letter-spacing:.2px; }
+.brand .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
 
-.header-actions{
-  display:flex; gap:10px; align-items:center;
-}
+.header-actions{ display:flex; gap:10px; align-items:center; }
 .icon-btn{
   border:1px solid var(--line);
   background: color-mix(in srgb, var(--card) 88%, transparent);
@@ -117,9 +109,7 @@ header{
   gap: 14px;
   margin-top: 14px;
 }
-@media (max-width: 980px){
-  .grid{ grid-template-columns: 1fr; }
-}
+@media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
 
 .card{
   background: color-mix(in srgb, var(--card) 92%, transparent);
@@ -149,7 +139,7 @@ header{
   font-size: 12px; color: var(--muted);
   margin: 2px 0 6px;
 }
-.input, select{
+.input, select, textarea{
   width:100%;
   padding: 12px 12px;
   border-radius: 14px;
@@ -158,8 +148,10 @@ header{
   color: var(--text);
   outline:none;
   transition:.15s ease;
+  font-family: inherit;
 }
-.input:focus, select:focus{
+textarea{ min-height: 84px; resize: vertical; }
+.input:focus, select:focus, textarea:focus{
   border-color: color-mix(in srgb, var(--primary) 55%, var(--line));
   box-shadow: 0 0 0 4px rgba(0,122,255,.15);
 }
@@ -199,10 +191,7 @@ header{
   background: color-mix(in srgb, var(--card) 92%, transparent);
   border: 1px solid var(--line);
 }
-.btn:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
 
 .badge{
   font-size: 12px;
@@ -218,26 +207,20 @@ hr.sep{
   border-top:1px dashed var(--line);
   margin: 14px 0;
 }
-
 .muted{ color:var(--muted); font-size: 13px; }
 
-/* ✅ Sin campo "Artículo": ajustamos el grid */
+/* ✅ Sin campo "Artículo": grid */
 .item-line{
   display:grid;
   grid-template-columns: .95fr .65fr .85fr .85fr auto;
   gap:10px;
   align-items:end;
 }
-@media (max-width: 780px){
-  .item-line{ grid-template-columns: 1fr 1fr; }
-}
+@media (max-width: 780px){ .item-line{ grid-template-columns: 1fr 1fr; } }
 
 .small{ font-size: 12px; color: var(--muted); }
 
-.chips{
-  display:flex; flex-wrap:wrap; gap:8px;
-  margin-top: 10px;
-}
+.chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
 .chip{
   display:flex; align-items:center; gap:8px;
   padding: 8px 10px;
@@ -289,9 +272,7 @@ hr.sep{
 .table th{ color:var(--muted); font-weight:800; font-size:12px; }
 .table td b{ font-weight:900; }
 
-.footer-actions{
-  display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px;
-}
+.footer-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
 
 details.private{
   border:1px solid var(--line);
@@ -345,9 +326,7 @@ details.private summary::-webkit-details-marker{ display:none; }
   border-radius: var(--radius2);
   padding: 12px;
 }
-.hist-top{
-  display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
-}
+.hist-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
 .hist-top b{ font-size:13px; }
 .hist-top .meta{ font-size:12px; color:var(--muted); }
 .hist-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
@@ -521,6 +500,33 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
                 </div>
                 <div class="mini-out" id="m2out">$0.00</div>
               </div>
+
+              <!-- ✅ NUEVO: Métodos de pago editables -->
+              <div class="mini" style="grid-column: 1 / -1;">
+                <h3>Métodos de pago (se envían por WhatsApp)</h3>
+                <div class="row">
+                  <div class="field">
+                    <label>Bolívares (Bs)</label>
+                    <textarea id="pay_bs" class="input" placeholder="Ej: Pago Móvil, Transferencia"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>Dólares (USD)</label>
+                    <textarea id="pay_usd" class="input" placeholder="Ej: Efectivo, Zinli, Wally"></textarea>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field">
+                    <label>Pesos Colombianos (COP)</label>
+                    <textarea id="pay_cop" class="input" placeholder="Ej: Bancolombia, Nequi, Nu"></textarea>
+                  </div>
+                  <div class="field">
+                    <label>USDT</label>
+                    <textarea id="pay_usdt" class="input" placeholder="Ej: Binance Pay"></textarea>
+                  </div>
+                </div>
+                <div class="small">Tip: escribe los métodos separados por coma para que se vea limpio en el mensaje.</div>
+              </div>
+
             </div>
           </div>
         </details>
@@ -570,7 +576,8 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     mode: "cotizador_mode_v1",
     rate: "cotizador_rate_v1",
     rate_last_day: "cotizador_rate_day_v1",
-    last_quote: "cotizador_last_quote_v1"
+    last_quote: "cotizador_last_quote_v1",
+    payments: "cotizador_payments_v1"
   };
 
   const $ = (id)=>document.getElementById(id);
@@ -586,7 +593,18 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     return local.toISOString().slice(0,10);
   }
 
+  function nowDateTimeVE(){
+    const d = new Date();
+    const fecha = d.toLocaleDateString("es-VE", {year:"numeric", month:"2-digit", day:"2-digit"});
+    const hora  = d.toLocaleTimeString("es-VE", {hour:"2-digit", minute:"2-digit"});
+    return `${fecha} ${hora}`;
+  }
+
   function fmt(n){
+    const v = Number(n || 0);
+    return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtPct(n){
     const v = Number(n || 0);
     return v.toLocaleString("es-VE", {minimumFractionDigits:2, maximumFractionDigits:2});
   }
@@ -605,6 +623,31 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
   let history = safeParse(localStorage.getItem(STORAGE.history) || "[]", []);
   if(!Array.isArray(history)) history = [];
   if(!(lastQuote && typeof lastQuote === "object" && !Array.isArray(lastQuote))) lastQuote = null;
+
+  // Pagos (editable)
+  const defaultPayments = {
+    bs: "Pago Móvil, Transferencia",
+    usd: "Efectivo, Zinli, Wally",
+    cop: "Bancolombia, Nequi, Nu",
+    usdt: "Binance Pay"
+  };
+  let payments = Object.assign({}, defaultPayments, safeParse(localStorage.getItem(STORAGE.payments) || "null", {}) || {});
+
+  function applyPaymentsToUI(){
+    $("pay_bs").value = payments.bs || "";
+    $("pay_usd").value = payments.usd || "";
+    $("pay_cop").value = payments.cop || "";
+    $("pay_usdt").value = payments.usdt || "";
+  }
+  function readPaymentsFromUI(){
+    payments = {
+      bs: ($("pay_bs").value || "").trim(),
+      usd: ($("pay_usd").value || "").trim(),
+      cop: ($("pay_cop").value || "").trim(),
+      usdt: ($("pay_usdt").value || "").trim()
+    };
+    localStorage.setItem(STORAGE.payments, JSON.stringify(payments));
+  }
 
   // Init base
   $("brandTitle").textContent = "Cotizador Pro";
@@ -669,13 +712,13 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     }catch(e){}
   }
 
-  // ✅ Deshabilitar / habilitar botón Agregar si no hay tienda
+  // Deshabilitar / habilitar botón Agregar si no hay tienda
   function updateAddBtn(){
     const ok = !!$("brand").value;
     $("addItemBtn").disabled = !ok;
   }
 
-  // ✅ Agregar item (sin campo Artículo) + tienda obligatoria
+  // Agregar item + tienda obligatoria
   function addItem(){
     const store = $("brand").value;
     const type = $("itemType").value || "Otros";
@@ -843,7 +886,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
       <div class="muted" style="margin-top:12px">
         Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
-        Envío Internacional (${fmt(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
+        Envío Internacional (${fmtPct(q.shippingPct)}%): <b>$${fmt(q.shippingUSD)}</b>
       </div>
       <div class="muted" style="margin-top:6px">
         Inicial: <b>$${fmt(q.initialUSD)}</b> • Restante: <b>$${fmt(q.remainingUSD)}</b>
@@ -928,28 +971,71 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     renderHistory();
   }
 
+  // ✅ WhatsApp organizado (sin restante en Bs)
   function quoteToMessage(q){
-    const lines = q.items.map(it=>{
-      const qty = it.qty ? ` (Cant: ${it.qty})` : "";
-      return `• ${it.name}${qty}: $${fmt(it.total)} (Precio $${fmt(it.subtotal)} + Imp $${fmt(it.tax)})`;
+    const dt = nowDateTimeVE();
+
+    const itemsLines = q.items.map((it, i)=>{
+      const qty = it.qty ? ` • Cant: ${it.qty}` : "";
+      return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
     }).join("\n");
 
+    const totalArticulosUSD = q.totalItemsUSD; // artículos + impuestos (sin envío)
+    const envioUSD = q.shippingUSD;
+    const totalUSD = q.totalUSD;
+
+    const inicialUSD = q.initialUSD;
+    const restanteUSD = q.remainingUSD;
+
+    const initialPct = totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : 0;
+
+    const tasa = Number(q.bcv || 0);
+    const inicialBs = tasa ? q.initialBs : 0;
+    const totalBs = tasa ? q.totalBs : 0;
+
+    const payBS = (payments.bs || "").trim();
+    const payUSD = (payments.usd || "").trim();
+    const payCOP = (payments.cop || "").trim();
+    const payUSDT = (payments.usdt || "").trim();
+
     const msg = [
-      `🧾 *Cotización*`,
-      q.client ? `👤 Cliente: *${q.client}*` : "",
-      q.brand ? `🏷️ Tienda: *${q.brand}*` : "",
-      q.date ? `📅 Fecha: ${q.date}` : "",
-      "",
-      lines,
-      "",
-      `Subtotal: $${fmt(q.subtotalUSD)}`,
-      `Impuestos: $${fmt(q.taxesUSD)}`,
-      `Envío Internacional (${fmt(q.shippingPct)}%): $${fmt(q.shippingUSD)}`,
-      `✅ Total: *$${fmt(q.totalUSD)}*`,
-      `💵 Inicial: $${fmt(q.initialUSD)}`,
-      `🧮 Restante: *$${fmt(q.remainingUSD)}*`,
-      q.bcv ? `\nTasa: ${fmt(q.bcv)} Bs/USD\nTotal Bs: ${fmt(q.totalBs)} Bs\nRestante Bs: ${fmt(q.remainingBs)} Bs` : ""
-    ].filter(Boolean).join("\n");
+`🧾 *COTIZACIÓN*
+🏷️ Tienda: *${q.brand || "—"}*
+👤 Cliente: *${q.client || "—"}*
+📅 Fecha: ${q.date || "—"}`,
+
+`📦 *DETALLE DE ARTÍCULOS*
+${itemsLines}`,
+
+`💰 *RESUMEN (USD)*
+• Total costo artículos: *$${fmt(totalArticulosUSD)}*
+• Envío internacional (${fmtPct(q.shippingPct)}%): *$${fmt(envioUSD)}*
+• *TOTAL A PAGAR: $${fmt(totalUSD)}*`,
+
+`✅ *PAGO INICIAL*
+• Inicial: *$${fmt(inicialUSD)}* (${fmtPct(initialPct)}%)
+• Inicial en Bs: *${tasa ? fmt(inicialBs) + " Bs" : "—"}*`,
+
+`🧮 *RESTANTE*
+• Restante: *$${fmt(restanteUSD)}*`,
+
+`📈 *TASA BCV*
+• Tasa usada: *${tasa ? fmt(tasa) + " Bs/USD" : "No indicada"}*
+• Total en Bs (referencia): *${tasa ? fmt(totalBs) + " Bs" : "—"}*`,
+
+`📝 *NOTA*
+El monto en Bs es una *referencia calculada* según la tasa BCV usada al momento de esta cotización.
+⏱️ Generado: ${dt}`,
+
+`📌 *TÉRMINOS Y CONDICIONES*
+• Para realizar tu encargo es *obligatorio pagar la inicial*.`,
+
+`💳 *MÉTODOS DE PAGO*
+• *Bolívares (Bs):* ${payBS || "—"}
+• *Dólares (USD):* ${payUSD || "—"}
+• *Pesos Colombianos (COP):* ${payCOP || "—"}
+• *USDT:* ${payUSDT || "—"}`
+    ].join("\n\n");
 
     return msg;
   }
@@ -1006,7 +1092,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     doc.text(`Inicial USD: $${fmt(q.initialUSD)}  |  Restante USD: $${fmt(q.remainingUSD)}`, 14, y); y += 6;
 
     if(q.bcv){
-      doc.text(`Total Bs: ${fmt(q.totalBs)} Bs  |  Restante Bs: ${fmt(q.remainingBs)} Bs`, 14, y); y += 6;
+      doc.text(`Total Bs: ${fmt(q.totalBs)} Bs`, 14, y); y += 6;
     }
 
     doc.save(`Cotizacion_${(q.client||"Cliente").replace(/\s+/g,"_")}.pdf`);
@@ -1108,6 +1194,11 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
     });
   });
 
+  // pagos autosave
+  ["pay_bs","pay_usd","pay_cop","pay_usdt"].forEach(id=>{
+    $(id).addEventListener("input", readPaymentsFromUI);
+  });
+
   // mini calc 1
   function m1(op){
     const a = Number($("m1a").value||0);
@@ -1140,6 +1231,7 @@ body.client .card{ max-width: 980px; margin: 0 auto; }
 
   // Run init
   loadDraft();
+  applyPaymentsToUI();
   renderHistory();
   renderItemsChips();
   updateAddBtn();
