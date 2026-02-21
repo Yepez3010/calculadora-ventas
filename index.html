@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cotizador Profesional Móvil</title>
+<title>Cotizador Pro Móvil</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,306 +11,268 @@
 <style>
 :root{
   --primary:#007BFF;
-  --secondary:#6c757d;
-  --card-bg:#fff;
-  --text-color:#333;
-  --input-bg:#fff;
-  --input-text:#333;
-  --calc-bg:#e2e8f0;
-  --result-bg:#f1f5f9;
-  --result-text:#333;
+  --bg:#f2f4f8;
+  --card:#ffffff;
+  --text:#333;
 }
 
 body{
+  margin:0;
   font-family:'Roboto',sans-serif;
-  background:linear-gradient(135deg,#f0f2f5,#c9d6ff);
-  color:var(--text-color);
-  padding:20px;
-  transition:all 0.4s ease;
+  background:var(--bg);
+  color:var(--text);
 }
 
-body.dark-mode{
-  --card-bg:#1e1e1e;
-  --text-color:#eee;
-  --input-bg:#2b2b2b;
-  --input-text:#fff;
-  --calc-bg:#2a2a2a;
-  --result-bg:#1e1e1e;
-  --result-text:#eee;
-  background:linear-gradient(135deg,#121212,#1a1a1a);
+body.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#eee;
 }
 
-.calculator{
-  background:linear-gradient(145deg,#ffffff,#e6f0ff);
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 15px 35px rgba(0,0,0,0.25);
-  width:100%;
+.container{
   max-width:500px;
-  margin:0 auto;
-  position:relative;
+  margin:auto;
+  padding:15px;
 }
 
-body.dark-mode .calculator{
-  background:linear-gradient(145deg,#1e1e1e,#2a2a2a);
+.card{
+  background:var(--card);
+  padding:18px;
+  border-radius:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
-h2{text-align:center;color:var(--primary);}
+h2{
+  text-align:center;
+  margin-top:0;
+  color:var(--primary);
+}
 
-label{display:block;margin-top:10px;}
+label{
+  display:block;
+  margin-top:12px;
+  font-size:14px;
+}
 
 input{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:5px;
-  border-radius:8px;
+  border-radius:10px;
   border:1px solid #ccc;
-  background:var(--input-bg);
-  color:var(--input-text);
+  font-size:16px;
   box-sizing:border-box;
 }
 
-.btn{
-  margin-top:15px;
+button{
   width:100%;
-  padding:12px;
+  padding:14px;
+  margin-top:14px;
   border:none;
-  border-radius:8px;
-  background:linear-gradient(135deg,#007BFF,#0056b3);
-  color:#fff;
+  border-radius:12px;
+  background:var(--primary);
+  color:white;
+  font-size:16px;
+  font-weight:600;
   cursor:pointer;
-  transition:0.3s;
 }
 
-.btn:hover{transform:translateY(-2px);}
+button:active{
+  transform:scale(0.98);
+}
 
 .results{
-  margin-top:20px;
-  background:var(--result-bg);
-  color:var(--result-text);
-  padding:15px;
-  border-radius:10px;
-}
-
-.private-settings{
-  margin-top:20px;
-  padding:15px;
-  background:var(--calc-bg);
+  margin-top:18px;
+  background:#eef2f7;
+  padding:12px;
   border-radius:12px;
-  display:none;
+  font-size:14px;
 }
 
-.private-grid{
-  display:flex;
-  gap:10px;
+body.dark .results{
+  background:#2a2a2a;
 }
 
-.private-card{
-  flex:1;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-.mini-btn{
-  width:100%;
-  margin-top:8px;
-  padding:8px;
-  border:none;
-  border-radius:8px;
-  background:#007BFF;
-  color:#fff;
-  cursor:pointer;
-}
-
-.toggle-theme{
+.toggle{
   position:fixed;
-  top:14px;
-  right:14px;
-  width:38px;
-  height:38px;
+  top:12px;
+  right:12px;
+  width:36px;
+  height:36px;
   border-radius:50%;
   border:none;
+  background:#444;
+  color:white;
   font-size:18px;
-  cursor:pointer;
-  background:#6c757d;
-  color:#fff;
 }
 
-@media (max-width:600px){
-  .private-grid{flex-direction:column;}
+.private{
+  display:none;
+  margin-top:20px;
+  padding-top:10px;
+  border-top:1px solid #ccc;
+}
+
+.mini{
+  margin-top:15px;
+  padding:12px;
+  border-radius:12px;
+  background:#f0f3f7;
+}
+
+body.dark .mini{
+  background:#2a2a2a;
+}
+
+.mini button{
+  margin-top:8px;
 }
 </style>
 </head>
 
 <body>
 
-<button class="toggle-theme" id="themeToggle">🌙</button>
+<button class="toggle" onclick="toggleTheme()">🌙</button>
 
-<div class="calculator">
+<div class="container">
+<div class="card">
 
 <h2>Cotizador Profesional</h2>
 
-<label>Nombre del Cliente:
-<input type="text" id="clientName">
+<label>Cliente
+<input type="text" id="client">
 </label>
 
-<label>Fecha:
+<label>Fecha
 <input type="date" id="date">
 </label>
 
-<label>Marca:
-<input type="text" id="brandName">
+<label>Producto
+<input type="text" id="product">
 </label>
 
-<hr>
-
-<label>Producto:
-<input type="text" id="itemName">
+<label>Precio $
+<input type="number" id="price">
 </label>
 
-<label>Cantidad (informativa):
-<input type="number" id="itemQuantity">
-</label>
-
-<label>Precio ($):
-<input type="number" id="itemPrice">
-</label>
-
-<label>Impuesto (%):
+<label>Impuesto %
 <input type="number" id="tax">
 </label>
 
-<button class="btn" onclick="addItem()">Agregar Item</button>
+<button onclick="addItem()">Agregar</button>
 
-<hr>
-
-<label>Envío (%):
-<input type="number" id="shippingPercent">
+<label>Envío %
+<input type="number" id="shipping">
 </label>
 
-<label>Inicial (%):
-<input type="number" id="initialPercent">
+<label>Inicial %
+<input type="number" id="initial">
 </label>
 
-<label>Tasa BCV:
-<input type="number" id="bcvRate">
+<label>Tasa BCV
+<input type="number" id="bcv">
 </label>
 
-<button class="btn" onclick="calculateTotal()">Calcular Total</button>
-<button class="btn" onclick="exportPDF()">Exportar PDF</button>
+<button onclick="calculate()">Calcular</button>
+<button onclick="downloadPDF()">Exportar PDF</button>
 
 <div class="results" id="results">
-<p>No hay cotización aún.</p>
+Sin cotización.
 </div>
 
-<button class="btn" onclick="togglePrivate()">Ajustes Privados</button>
+<button onclick="togglePrivate()">Ajustes Privados</button>
 
-<div class="private-settings" id="privateSettings">
+<div class="private" id="private">
 
-<h3>Mini Calculadoras</h3>
-
-<div class="private-grid">
-
-<div class="private-card">
-<h4>USD</h4>
-<input type="number" id="num1" placeholder="Número 1">
-<input type="number" id="num2" placeholder="Número 2">
-<button class="mini-btn" onclick="calcUSD('+')">➕</button>
-<button class="mini-btn" onclick="calcUSD('-')">➖</button>
-<button class="mini-btn" onclick="calcUSD('*')">✖️</button>
-<p id="resUSD">Resultado: -</p>
+<div class="mini">
+<h4>Mini Calculadora USD</h4>
+<input type="number" id="n1" placeholder="Número 1">
+<input type="number" id="n2" placeholder="Número 2">
+<button onclick="calc('+')">➕</button>
+<button onclick="calc('-')">➖</button>
+<button onclick="calc('*')">✖️</button>
+<p id="miniRes">Resultado: -</p>
 </div>
 
-<div class="private-card">
+<div class="mini">
 <h4>Bs → USD</h4>
-<input type="number" id="numBs1" placeholder="Monto Bs 1">
-<input type="number" id="numBs2" placeholder="Monto Bs 2">
-<button class="mini-btn" onclick="calcBs('+')">➕</button>
-<button class="mini-btn" onclick="calcBs('-')">➖</button>
-<button class="mini-btn" onclick="calcBs('*')">✖️</button>
-<p id="resBs">Resultado: -</p>
+<input type="number" id="b1" placeholder="Monto Bs 1">
+<input type="number" id="b2" placeholder="Monto Bs 2">
+<button onclick="calcBs('+')">➕</button>
+<button onclick="calcBs('-')">➖</button>
+<button onclick="calcBs('*')">✖️</button>
+<p id="miniBsRes">Resultado: -</p>
 </div>
 
 </div>
+
 </div>
 </div>
 
 <script>
-const items=[];
+let items=[];
 
 function addItem(){
-  const name=itemName.value;
-  const quantity=itemQuantity.value;
-  const price=parseFloat(itemPrice.value);
+  const price=parseFloat(price.value)||0;
   const taxPercent=parseFloat(tax.value)||0;
-
-  if(!name||isNaN(price)){alert("Completa el item");return;}
-
-  const taxAmount=price*(taxPercent/100);
-  const total=price+taxAmount;
-
-  items.push({name,quantity,price,taxAmount,total});
-  results.innerHTML+="<p>"+name+" - $"+total.toFixed(2)+"</p>";
+  const total=price+(price*(taxPercent/100));
+  items.push(total);
+  results.innerHTML="Item agregado: $"+total.toFixed(2);
 }
 
-function calculateTotal(){
-  const shippingPercent=parseFloat(shippingPercent.value)||0;
-  const initialPercent=parseFloat(initialPercent.value)||0;
-  const bcv=parseFloat(bcvRate.value)||1;
+function calculate(){
+  const totalItems=items.reduce((a,b)=>a+b,0);
+  const ship=totalItems*((shipping.value||0)/100);
+  const total=totalItems+ship;
+  const init=total*((initial.value||0)/100);
+  const remain=total-init;
+  const rate=bcv.value||1;
 
-  const totalItems=items.reduce((sum,it)=>sum+it.total,0);
-  const shipping=totalItems*(shippingPercent/100);
-  const total=totalItems+shipping;
-  const initial=total*(initialPercent/100);
-  const remaining=total-initial;
-
-  results.innerHTML+=`
-  <hr>
-  <p>Total: $${total.toFixed(2)}</p>
-  <p>Inicial: $${initial.toFixed(2)}</p>
-  <p>Restante: $${remaining.toFixed(2)}</p>
-  <p>Total Bs: ${(total*bcv).toFixed(2)}</p>`;
+  results.innerHTML=`
+  Total: $${total.toFixed(2)}<br>
+  Inicial: $${init.toFixed(2)}<br>
+  Restante: $${remain.toFixed(2)}<br>
+  Total Bs: ${(total*rate).toFixed(2)}
+  `;
 }
 
 function togglePrivate(){
-  privateSettings.style.display=
-  privateSettings.style.display==="block"?"none":"block";
+  private.style.display=
+  private.style.display==="block"?"none":"block";
 }
 
-function calcUSD(op){
-  const n1=parseFloat(num1.value)||0;
-  const n2=parseFloat(num2.value)||0;
+function calc(op){
+  let a=parseFloat(n1.value)||0;
+  let b=parseFloat(n2.value)||0;
   let r=0;
-  if(op==='+')r=n1+n2;
-  if(op==='-')r=n1-n2;
-  if(op==='*')r=n1*n2;
-  resUSD.innerText="Resultado: "+r.toFixed(2)+" USD";
+  if(op==='+')r=a+b;
+  if(op==='-')r=a-b;
+  if(op==='*')r=a*b;
+  miniRes.innerText="Resultado: "+r.toFixed(2)+" USD";
 }
 
 function calcBs(op){
-  const n1=parseFloat(numBs1.value)||0;
-  const n2=parseFloat(numBs2.value)||0;
-  const bcv=parseFloat(bcvRate.value)||1;
+  let a=parseFloat(b1.value)||0;
+  let b=parseFloat(b2.value)||0;
   let r=0;
-  if(op==='+')r=n1+n2;
-  if(op==='-')r=n1-n2;
-  if(op==='*')r=n1*n2;
-  resBs.innerText="Resultado: "+r.toFixed(2)+" Bs → "+(r/bcv).toFixed(2)+" USD";
+  if(op==='+')r=a+b;
+  if(op==='-')r=a-b;
+  if(op==='*')r=a*b;
+  miniBsRes.innerText="Resultado: "+r.toFixed(2)+" Bs → "+(r/(bcv.value||1)).toFixed(2)+" USD";
 }
 
-function exportPDF(){
+function toggleTheme(){
+  document.body.classList.toggle("dark");
+  document.querySelector(".toggle").innerText=
+  document.body.classList.contains("dark")?"☀️":"🌙";
+}
+
+function downloadPDF(){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
   doc.text(results.innerText,10,10);
   doc.save("cotizacion.pdf");
 }
-
-themeToggle.onclick=()=>{
-  document.body.classList.toggle("dark-mode");
-  themeToggle.innerText=
-  document.body.classList.contains("dark-mode")?"☀️":"🌙";
-};
 </script>
 
 </body>
