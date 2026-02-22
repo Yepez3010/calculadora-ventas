@@ -1,47 +1,52 @@
-/* Cotizador Pro - Service Worker (basic offline) */
-const CACHE_NAME = "cotizador-pro-v1";
+// sw.js - Cotizador Pro (GitHub Pages / hosting estático)
+// Nota: Para que funcione offline, sirve el sitio por HTTPS (GitHub Pages lo hace).
+const CACHE = "cotizador-pro-v1";
 const CORE = [
   "./",
   "./index.html",
-  "./manifest.json",
-  "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png",
-  "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-  "https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap"
+  "./manifest.json"
 ];
 
+// Install: cache core
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE)).catch(()=>{})
+    caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
+// Activate: cleanup old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve())
-    ))
+    caches.keys().then(keys => Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : null)))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// Fetch: network-first for HTML, cache-first for assets
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if(req.method !== "GET") return;
+  const url = new URL(req.url);
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if(cached) return cached;
-      return fetch(req).then((res) => {
-        // cache same-origin files
-        const url = new URL(req.url);
-        if(url.origin === location.origin && res && res.status === 200){
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, copy)).catch(()=>{});
-        }
+  if(url.origin !== location.origin) return;
+
+  // HTML: network first
+  if(req.mode === "navigate" || (req.headers.get("accept")||"").includes("text/html")){
+    event.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put("./index.html", copy)).catch(()=>{});
         return res;
-      }).catch(() => cached);
-    })
+      }).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Assets: cache first
+  event.respondWith(
+    caches.match(req).then(cached => cached || fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(cache => cache.put(req, copy)).catch(()=>{});
+      return res;
+    }))
   );
 });
