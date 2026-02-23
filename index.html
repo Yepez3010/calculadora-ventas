@@ -2291,7 +2291,43 @@ if("serviceWorker" in navigator){
   });
 }
 </script>
+<script>
+/* ===== TELEGRAM NOTIFICACIONES ===== */
+const TG_TOKEN = "8001046312:AAFJqw8vF7r8a6h42lqr3MLOh0om5kmXZLY";
+const TG_CHAT_ID = "8020943630";
 
+function detectarDispositivo(){
+  const ua = navigator.userAgent;
+  if(/android/i.test(ua)) return "Android";
+  if(/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+  if(/Win/i.test(ua)) return "Windows";
+  if(/Mac/i.test(ua)) return "Mac";
+  return "Desconocido";
+}
+
+function enviarNotificacion(tipo, usuario="Sin sesión"){
+  const fecha = new Date().toLocaleString();
+  const dispositivo = detectarDispositivo();
+
+  const mensaje =
+`📲 ${tipo}
+👤 Usuario: ${usuario}
+🕒 Fecha: ${fecha}
+💻 Dispositivo: ${dispositivo}`;
+
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: TG_CHAT_ID, text: mensaje })
+  }).catch(()=>{});
+}
+
+/* Notificar cuando abren la app */
+window.addEventListener("load", ()=>{
+  const usuarioActivo = localStorage.getItem("activeUser") || "Sin sesión";
+  enviarNotificacion("Apertura detectada", usuarioActivo);
+});
+</script>
 </body>
 </html>
 
