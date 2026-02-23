@@ -495,8 +495,7 @@ button, .btn{ touch-action: manipulation; }
     <div class="card">
       <div class="head">
         <h2>Datos de la cotización</h2>
-        <span class="badge" id="rateState">Tasa manual</span>
-      </div>
+        </div>
       <div class="content">
         <div class="row">
           <div class="field">
@@ -519,16 +518,41 @@ button, .btn{ touch-action: manipulation; }
               <option value="AliExpress">AliExpress</option>
             </select>
           </div>
+
+          <div class="field">
+            <label>Moneda de cotización</label>
+            <select id="baseCurrency" class="input">
+              <option value="USD">$ USD</option>
+              <option value="EUR">€ EUR</option>
+            </select>
+          </div>
+
           <div class="field">
             <label>
-              Tasa BCV (USD→VES)
-              <span class="small"><button class="icon-btn" id="rateBtn" style="padding:6px 10px;border-radius:12px;font-weight:800" type="button">↻ Actualizar</button></span>
+              Tasa (USD→VES)
+              <span class="small" style="display:flex;gap:8px;align-items:center;">
+                <span class="badge" id="rateStateUsd">Manual</span>
+                <button class="icon-btn" id="rateBtn" style="padding:6px 10px;border-radius:12px;font-weight:800" type="button">↻ Actualizar</button>
+              </span>
             </label>
             <input class="input" id="bcv" type="number" step="0.01" placeholder="Ej: 38.50" />
           </div>
         </div>
 
-        <hr class="sep">
+        <div class="row">
+          <div class="field">
+            <label>
+              Tasa (EUR→VES)
+              <span class="small" style="display:flex;gap:8px;align-items:center;">
+                <span class="badge" id="rateStateEur">Manual</span>
+                <button class="icon-btn" id="rateEurBtn" style="padding:6px 10px;border-radius:12px;font-weight:800" type="button">↻ Actualizar €</button>
+              </span>
+            </label>
+            <input class="input" id="bcv_eur" type="number" step="0.01" placeholder="Ej: 41.20" />
+          </div>
+        </div>
+
+<hr class="sep">
 
         <div class="item-line admin-only">
           <div class="field">
@@ -546,12 +570,12 @@ button, .btn{ touch-action: manipulation; }
           </div>
 
           <div class="field">
-            <label>Precio (USD)</label>
+            <label>Precio (Moneda base)</label>
             <input class="input" id="itemPrice" type="number" step="0.01" min="0" placeholder="Ej: 100 USD" />
           </div>
 
           <div class="field">
-            <label>Impuesto ($)</label>
+            <label>Impuesto (Moneda base)</label>
             <input class="input" id="itemTax" type="number" step="0.01" min="0" placeholder="0.00" />
           </div>
 
@@ -1191,6 +1215,13 @@ function doLogout(
     const x = Number(n || 0);
     return x.toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 });
   }
+
+  function sym(cur){
+    return cur === "EUR" ? "€" : "$";
+  }
+  function fmtMoney(n, cur){
+    return sym(cur) + fmt(n);
+  }
   function fmtPct(n){
     const x = Number(n || 0);
     return (Math.round(x * 100) / 100).toString();
@@ -1247,39 +1278,70 @@ function doLogout(
 
   // Rate (USD -> VES)
   async function updateRate({force=false}={}){
-    const badge = $("rateState");
+    const badge = $("rateStateUsd");
     const input = $("bcv");
     if(!badge || !input) return;
 
     if(!force && input.value){
-      badge.textContent = "Tasa manual";
+      badge.textContent = "Manual";
       return;
     }
 
     try{
-      badge.textContent = "Buscando tasa…";
+      badge.textContent = "Buscando…";
       // Fuente referencial (no oficial BCV)
       const res = await fetch("https://open.er-api.com/v6/latest/USD", { cache:"no-store" });
       const data = await res.json();
       const rate = data?.rates?.VES;
       if(rate){
         input.value = String(Math.round(rate * 100) / 100);
-        badge.textContent = "Tasa automática";
+        badge.textContent = "Referencial";
       }else{
-        badge.textContent = "Tasa manual";
+        badge.textContent = "Manual";
       }
     }catch{
-      badge.textContent = "Tasa manual";
+      badge.textContent = "Manual";
     }
   }
 
-  // Draft
+  
+  // Rate (EUR -> VES)
+  async function updateRateEUR({force=false}={}){
+    const badge = $("rateStateEur");
+    const input = $("bcv_eur");
+    if(!badge || !input) return;
+
+    if(!force && input.value){
+      badge.textContent = "Manual";
+      return;
+    }
+
+    try{
+      badge.textContent = "Buscando…";
+      // Fuente referencial (no oficial BCV)
+      const res = await fetch("https://open.er-api.com/v6/latest/EUR", { cache:"no-store" });
+      const data = await res.json();
+      const rate = data?.rates?.VES;
+      if(rate){
+        input.value = String(Math.round(rate * 100) / 100);
+        badge.textContent = "Referencial";
+      }else{
+        badge.textContent = "Manual";
+      }
+    }catch{
+      badge.textContent = "Manual";
+    }
+  }
+
+// Draft
   function saveDraft(){
     const draft = {
       client: $("client")?.value || "",
       date: $("date")?.value || "",
       brand: $("brand")?.value || "",
       bcv: $("bcv")?.value || "",
+      baseCurrency: $("baseCurrency")?.value || "USD",
+      bcv_eur: $("bcv_eur")?.value || "",
       shipping: $("shipping")?.value || "",
       initial: $("initial")?.value || "",
       items
@@ -1295,6 +1357,8 @@ function doLogout(
       $("date").value = d.date ?? nowISODate();
       $("brand").value = d.brand ?? "";
       $("bcv").value = d.bcv ?? "";
+      if($("baseCurrency")) $("baseCurrency").value = d.baseCurrency ?? "USD";
+      if($("bcv_eur")) $("bcv_eur").value = d.bcv_eur ?? "";
       $("shipping").value = d.shipping ?? "";
       $("initial").value = d.initial ?? "";
       items = Array.isArray(d.items) ? d.items : [];
@@ -1312,6 +1376,15 @@ function doLogout(
     $("addItemBtn").disabled = !$("brand").value;
   }
 
+
+  function refreshCurrencyUI(){
+    const base = $("baseCurrency")?.value || "USD";
+    const price = $("itemPrice");
+    const tax = $("itemTax");
+    if(price) price.placeholder = base === "EUR" ? "Ej: 100 EUR" : "Ej: 100 USD";
+    if(tax) tax.placeholder = base === "EUR" ? "0.00 EUR" : "0.00 USD";
+  }
+
   function addItem(){
     const store = $("brand").value;
     const type = $("itemType").value || "Otros";
@@ -1319,11 +1392,13 @@ function doLogout(
     const price = Number($("itemPrice").value || 0);
     const tax = Number($("itemTax").value || 0);
 
+
+    const base = $("baseCurrency")?.value || "USD";
     if(!store){ alert("Selecciona una Tienda antes de agregar artículos."); $("brand").focus(); return; }
     if(price < 0 || tax < 0 || qty < 0){ alert("Valores inválidos."); return; }
 
     const name = `${store} — ${type}`;
-    items.push({ store, type, name, qty, price, tax });
+    items.push({ store, type, name, qty, price, tax, cur: base });
 
     $("itemQty").value = "";
     $("itemPrice").value = "";
@@ -1349,16 +1424,21 @@ function doLogout(
       const div=document.createElement("div");
       div.className="chip";
       const qtyTxt = it.qty ? ` • Cant: ${it.qty}` : "";
-      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • $${fmt(it.price)} + $${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
+      const c = it.cur || ($("baseCurrency")?.value || "USD");
+      div.innerHTML = `<b>${escapeHtml(it.name)}</b>${qtyTxt} • ${sym(c)}${fmt(it.price)} + ${sym(c)}${fmt(it.tax)} <span class="x" title="Eliminar">✕</span>`;
       div.querySelector(".x").addEventListener("click", ()=>removeItem(i));
       wrap.appendChild(div);
     });
   }
 
+  
   function getPreviewTotals(){
     const shippingPct = clamp($("shipping").value, 0, 100);
     const initialPct = clamp($("initial").value, 0, 100);
-    const bcv = Number($("bcv").value || 0);
+    const base = $("baseCurrency")?.value || "USD";
+    const bcvUsd = Number($("bcv").value || 0);
+    const bcvEur = Number($("bcv_eur")?.value || 0);
+    const bcvBase = (base === "EUR") ? bcvEur : bcvUsd;
 
     const itemsCalc = items.map(it=>{
       const subtotal = Number(it.price || 0);
@@ -1367,16 +1447,17 @@ function doLogout(
       return { ...it, subtotal, tax, total };
     });
 
-    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
-    const shippingUSD = totalItemsUSD * (shippingPct / 100);
-    const totalUSD = totalItemsUSD + shippingUSD;
+    const totalItemsBase = itemsCalc.reduce((a,b)=>a + b.total, 0);
+    const shippingBase = totalItemsBase * (shippingPct / 100);
+    const totalBase = totalItemsBase + shippingBase;
 
-    const initialUSD = totalUSD * (initialPct / 100);
-    const initialBs = bcv ? initialUSD * bcv : 0;
+    const initialBase = totalBase * (initialPct / 100);
+    const initialBs = bcvBase ? initialBase * bcvBase : 0;
 
-    return { totalItemsUSD, shippingPct, shippingUSD, totalUSD, initialPct, initialUSD, bcv, initialBs };
+    return { base, totalItemsBase, shippingPct, shippingBase, totalBase, initialPct, initialBase, bcvUsd, bcvEur, bcvBase, initialBs };
   }
 
+  
   function updateInitialPreview(){
     const el = $("initialPreview");
     if(!el) return;
@@ -1387,11 +1468,18 @@ function doLogout(
     }
 
     const p = getPreviewTotals();
+    const baseTxt = `${fmtMoney(p.initialBase, p.base)}`;
+    const bsTxt = p.bcvBase ? ` • ${fmt(p.initialBs)} Bs` : "";
+    el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${baseTxt}${bsTxt}`;
+  }
+
+    const p = getPreviewTotals();
     const usdTxt = `$${fmt(p.initialUSD)}`;
     const bsTxt = p.bcv ? ` • ${fmt(p.initialBs)} Bs` : "";
     el.textContent = `Inicial estimada (${fmtPct(p.initialPct)}%): ${usdTxt}${bsTxt}`;
   }
 
+  
   function calculate(){
     if(items.length === 0){ alert("Agrega al menos un artículo."); return; }
     const store = $("brand").value;
@@ -1399,41 +1487,62 @@ function doLogout(
 
     const shippingPct = clamp($("shipping").value, 0, 100);
     const initialPct = clamp($("initial").value, 0, 100);
-    const bcv = Number($("bcv").value || 0);
+
+    const base = $("baseCurrency")?.value || "USD";
+    const bcvUsd = Number($("bcv").value || 0);
+    const bcvEur = Number($("bcv_eur")?.value || 0);
+    const bcvBase = (base === "EUR") ? bcvEur : bcvUsd;
 
     const itemsCalc = items.map(it=>{
+      const cur = it.cur || base; // compat
       const subtotal = Number(it.price || 0);
       const tax = Number(it.tax || 0);
       const total = subtotal + tax;
-      return { ...it, subtotal, tax, total };
+      return { ...it, cur, subtotal, tax, total };
     });
 
-    const subtotalUSD = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
-    const taxesUSD = itemsCalc.reduce((a,b)=>a + b.tax, 0);
-    const totalItemsUSD = itemsCalc.reduce((a,b)=>a + b.total, 0);
+    const subtotalBase = itemsCalc.reduce((a,b)=>a + b.subtotal, 0);
+    const taxesBase = itemsCalc.reduce((a,b)=>a + b.tax, 0);
+    const totalItemsBase = itemsCalc.reduce((a,b)=>a + b.total, 0);
 
-    const shippingUSD = totalItemsUSD * (shippingPct / 100);
-    const totalUSD = totalItemsUSD + shippingUSD;
+    const shippingBase = totalItemsBase * (shippingPct / 100);
+    const totalBase = totalItemsBase + shippingBase;
 
-    const initialUSD = totalUSD * (initialPct / 100);
-    const remainingUSD = Math.max(0, totalUSD - initialUSD);
+    const initialBase = totalBase * (initialPct / 100);
+    const remainingBase = Math.max(0, totalBase - initialBase);
 
-    const totalBs = bcv ? totalUSD * bcv : 0;
-    const initialBs = bcv ? initialUSD * bcv : 0;
-    const remainingBs = bcv ? remainingUSD * bcv : 0;
+    const totalBs = bcvBase ? totalBase * bcvBase : 0;
+    const initialBs = bcvBase ? initialBase * bcvBase : 0;
+    const remainingBs = bcvBase ? remainingBase * bcvBase : 0;
+
+    const totalUSD = (bcvUsd && totalBs) ? (totalBs / bcvUsd) : 0;
+    const initialUSD = (bcvUsd && initialBs) ? (initialBs / bcvUsd) : 0;
+    const remainingUSD = (bcvUsd && remainingBs) ? (remainingBs / bcvUsd) : 0;
+
+    const totalEUR = (bcvEur && totalBs) ? (totalBs / bcvEur) : 0;
+    const initialEUR = (bcvEur && initialBs) ? (initialBs / bcvEur) : 0;
+    const remainingEUR = (bcvEur && remainingBs) ? (remainingBs / bcvEur) : 0;
 
     const quote = {
       client:$("client").value.trim(),
       date:$("date").value,
       brand:store,
+
+      baseCurrency: base,
+      bcvUsd, bcvEur,
+
       shippingPct,
       initialPct,
-      initialUSD,
-      bcv,
+
       items:itemsCalc,
-      subtotalUSD, taxesUSD, totalItemsUSD, shippingUSD, totalUSD,
-      remainingUSD,
-      totalBs, initialBs, remainingBs
+
+      subtotalBase, taxesBase, totalItemsBase, shippingBase, totalBase,
+      initialBase, remainingBase,
+
+      totalBs, initialBs, remainingBs,
+
+      totalUSD, initialUSD, remainingUSD,
+      totalEUR, initialEUR, remainingEUR
     };
 
     lastQuote = quote;
@@ -1447,29 +1556,34 @@ function doLogout(
     saveDraft();
   }
 
+  
   function renderResults(q){
     const r = $("results");
+    const base = q.baseCurrency || "USD";
+    const other = (base === "EUR") ? "USD" : "EUR";
+    const otherTotal = (other === "USD") ? q.totalUSD : q.totalEUR;
+
     const lines = q.items.map(it=>`
       <tr>
         <td><b>${escapeHtml(it.name)}</b><div class="small">${it.qty ? "Cant: " + it.qty : ""}</div></td>
-        <td>$${fmt(it.subtotal)}</td>
-        <td>$${fmt(it.tax)}</td>
-        <td><b>$${fmt(it.total)}</b></td>
+        <td>${sym(base)}${fmt(it.subtotal)}</td>
+        <td>${sym(base)}${fmt(it.tax)}</td>
+        <td><b>${sym(base)}${fmt(it.total)}</b></td>
       </tr>
     `).join("");
 
-    const pct = Number(q.initialPct ?? (q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+    const pct = Number(q.initialPct ?? (q.totalBase > 0 ? (q.initialBase / q.totalBase) * 100 : DEFAULT_INITIAL_PCT));
 
     r.innerHTML = `
       <div class="kpis">
         <div class="kpi">
-          <div class="t">Total (USD)</div>
-          <div class="v">$${fmt(q.totalUSD)}</div>
+          <div class="t">Total (${base})</div>
+          <div class="v">${fmtMoney(q.totalBase, base)}</div>
         </div>
 
         <div class="kpi">
           <div class="t">Total (Bs)</div>
-          <div class="v">${q.bcv ? fmt(q.totalBs) + " Bs" : "—"}</div>
+          <div class="v">${(q.bcvUsd || q.bcvEur) ? fmt(q.totalBs) + " Bs" : "—"}</div>
         </div>
 
         <div class="kpi">
@@ -1478,19 +1592,26 @@ function doLogout(
         </div>
 
         <div class="kpi">
-          <div class="t">Inicial (USD / Bs)</div>
-          <div class="v">$${fmt(q.initialUSD)} ${q.bcv ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
+          <div class="t">Inicial (${base} / Bs)</div>
+          <div class="v">${fmtMoney(q.initialBase, base)} ${(q.bcvUsd || q.bcvEur) ? "• " + fmt(q.initialBs) + " Bs" : ""}</div>
         </div>
 
         <div class="kpi">
-          <div class="t">Restante (USD)</div>
-          <div class="v">$${fmt(q.remainingUSD)}</div>
+          <div class="t">Restante (${base})</div>
+          <div class="v">${fmtMoney(q.remainingBase, base)}</div>
         </div>
 
         <div class="kpi">
           <div class="t">Restante (Bs)</div>
-          <div class="v">${q.bcv ? fmt(q.remainingBs) + " Bs" : "—"}</div>
+          <div class="v">${(q.bcvUsd || q.bcvEur) ? fmt(q.remainingBs) + " Bs" : "—"}</div>
         </div>
+
+        ${otherTotal ? `
+          <div class="kpi">
+            <div class="t">Equivalente (${other})</div>
+            <div class="v">${sym(other)}${fmt(otherTotal)}</div>
+          </div>
+        ` : ``}
       </div>
 
       <div class="table-wrap">
@@ -1510,8 +1631,8 @@ function doLogout(
       </div>
 
       <div class="muted" style="margin-top:10px">
-        Subtotal: <b>$${fmt(q.subtotalUSD)}</b> • Impuestos: <b>$${fmt(q.taxesUSD)}</b> •
-        Total artículos: <b>$${fmt(q.totalItemsUSD)}</b> • Envío: <b>$${fmt(q.shippingUSD)}</b>
+        Subtotal: <b>${fmtMoney(q.subtotalBase, base)}</b> • Impuestos: <b>${fmtMoney(q.taxesBase, base)}</b> •
+        Total artículos: <b>${fmtMoney(q.totalItemsBase, base)}</b> • Envío: <b>${fmtMoney(q.shippingBase, base)}</b>
       </div>
     `;
   }
@@ -1576,16 +1697,21 @@ function doLogout(
     $("client").value = q.client ?? "";
     $("date").value = q.date ?? nowISODate();
     $("brand").value = q.brand ?? "";
+
+    if($("baseCurrency")) $("baseCurrency").value = q.baseCurrency ?? "USD";
+    if($("bcv_eur")) $("bcv_eur").value = (q.bcvEur ?? q.bcv_eur ?? "");
     $("shipping").value = q.shippingPct ?? "";
 
     if(q.initialPct != null){
       $("initial").value = q.initialPct;
     }else{
-      const inferred = q.totalUSD > 0 ? (q.initialUSD / q.totalUSD) * 100 : DEFAULT_INITIAL_PCT;
+      const t = (q.totalBase ?? q.totalUSD ?? 0);
+      const ini = (q.initialBase ?? q.initialUSD ?? 0);
+      const inferred = t > 0 ? (ini / t) * 100 : DEFAULT_INITIAL_PCT;
       $("initial").value = String(Math.round(inferred * 100) / 100);
     }
 
-    $("bcv").value = q.bcv ?? "";
+    $("bcv").value = (q.bcvUsd ?? q.bcv ?? "");
     items = Array.isArray(q.items) ? [...q.items] : [];
     renderItemsChips();
 
@@ -1661,23 +1787,25 @@ function doLogout(
     return use.map(l=>`• ${l}`).join("\n");
   }
 
+  
   function quoteToMessage(q){
     const dt = nowDateTimeVE();
+    const base = q.baseCurrency || "USD";
+    const other = (base === "EUR") ? "USD" : "EUR";
+    const otherTotal = (other === "USD") ? q.totalUSD : q.totalEUR;
 
     const itemsLines = q.items.map((it, i)=>{
       const qty = it.qty ? ` • Cant: ${it.qty}` : "";
-      return `${i+1}) ${it.name}${qty}\n   - Precio: $${fmt(it.subtotal)} | Imp: $${fmt(it.tax)} | Total: $${fmt(it.total)}`;
+      return `${i+1}) ${it.name}${qty}\n   - Precio: ${sym(base)}${fmt(it.subtotal)} | Imp: ${sym(base)}${fmt(it.tax)} | Total: ${sym(base)}${fmt(it.total)}`;
     }).join("\n");
 
-    const totalUSD = q.totalUSD;
-    const inicialUSD = q.initialUSD;
-    const restanteUSD = q.remainingUSD;
+    const totalBase = q.totalBase;
+    const inicialBase = q.initialBase;
+    const restanteBase = q.remainingBase;
 
-    const initialPct = Number(q.initialPct ?? (totalUSD > 0 ? (inicialUSD / totalUSD) * 100 : DEFAULT_INITIAL_PCT));
+    const initialPct = Number(q.initialPct ?? (totalBase > 0 ? (inicialBase / totalBase) * 100 : DEFAULT_INITIAL_PCT));
 
-    const tasa = Number(q.bcv || 0);
-    const inicialBs = tasa ? q.initialBs : 0;
-    const totalBs = tasa ? q.totalBs : 0;
+    const tasaBase = (base === "EUR") ? q.bcvEur : q.bcvUsd;
 
     const payBS = (payments.bs || "").trim();
     const payUSD = (payments.usd || "").trim();
@@ -1696,20 +1824,17 @@ function doLogout(
 ${itemsLines}`,
 
 `💰 *RESUMEN*
-Subtotal: $${fmt(q.subtotalUSD)}
-Impuestos: $${fmt(q.taxesUSD)}
-Total artículos: $${fmt(q.totalItemsUSD)}
-Envío (${fmtPct(q.shippingPct)}%): $${fmt(q.shippingUSD)}
+Subtotal: ${fmtMoney(q.subtotalBase, base)}
+Impuestos: ${fmtMoney(q.taxesBase, base)}
+Total artículos: ${fmtMoney(q.totalItemsBase, base)}
+Envío (${fmtPct(q.shippingPct)}%): ${fmtMoney(q.shippingBase, base)}
 
-✅ *TOTAL A PAGAR: $${fmt(totalUSD)}*
-💳 Inicial (${fmtPct(initialPct)}%): $${fmt(inicialUSD)}
-🧾 Restante: $${fmt(restanteUSD)}`,
+✅ *TOTAL A PAGAR: ${fmtMoney(totalBase, base)}*
+💳 Inicial (${fmtPct(initialPct)}%): ${fmtMoney(inicialBase, base)}
+🧾 Restante: ${fmtMoney(restanteBase, base)}${otherTotal ? `\n🔁 Equivalente ${other}: ${sym(other)}${fmt(otherTotal)}` : ""}`,
 
-/*
-`tasa: ${tasa ? fmt(tasa) + " Bs" : "—"}`,
-`Total Bs: ${tasa ? fmt(totalBs) + " Bs" : "—"}`,
-`Inicial Bs: ${tasa ? fmt(initialBs) + " Bs" : "—"}`,
-*/
+`💱 *TASA*
+${base}→VES: ${tasaBase ? fmt(tasaBase) + " Bs" : "—"}`,
 
 `💳 *MÉTODOS DE PAGO*
 Bs: ${payBS || "—"}
@@ -2113,12 +2238,15 @@ if(det && window.matchMedia("(max-width: 768px)").matches){
     buildLoginOptions();
 
     loadDraft();
+    if($("rateStateUsd")) $("rateStateUsd").textContent = ($("bcv")?.value ? "Manual" : "Manual");
+    if($("rateStateEur")) $("rateStateEur").textContent = ($("bcv_eur")?.value ? "Manual" : "Manual");
     loadHistory();
     loadPayments();
     loadTerms();
     applyPaymentsToUI();
     applyTermsToUI();
     ensureDefaultInitialPct();
+    refreshCurrencyUI();
     renderHistory();
     renderItemsChips();
     updateAddBtn();
@@ -2214,6 +2342,25 @@ if(det && window.matchMedia("(max-width: 768px)").matches){
   if($("m2mul")) $("m2mul").onclick = ()=>m2("*");
 
   if($("rateBtn")) $("rateBtn").onclick = ()=>updateRate({force:true});
+
+
+  if($("rateEurBtn")) $("rateEurBtn").onclick = ()=>updateRateEUR({force:true});
+
+  on("bcv","input", ()=>{
+    if($("rateStateUsd")) $("rateStateUsd").textContent = "Manual";
+    saveDraft();
+    updateInitialPreview();
+  });
+  on("bcv_eur","input", ()=>{
+    if($("rateStateEur")) $("rateStateEur").textContent = "Manual";
+    saveDraft();
+    updateInitialPreview();
+  });
+  on("baseCurrency","change", ()=>{
+    refreshCurrencyUI();
+    saveDraft();
+    updateInitialPreview();
+  });
 
   // Cambiar mi contraseña
   if($("pw_save")){
